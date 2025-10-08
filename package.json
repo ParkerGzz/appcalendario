@@ -1,0 +1,43 @@
+{
+  "name": "calendario-inteligente",
+  "version": "0.1.0",
+  "description": "Aplicación web inteligente para optimizar agenda personal con ubicaciones y tiempos de traslado",
+  "main": "app.js",
+  "scripts": {
+    "start": "http-server -p 8000 -o",
+    "dev": "live-server --port=8000",
+    "lint": "eslint *.js",
+    "format": "prettier --write \"**/*.{js,css,html,md}\"",
+    "test": "jest"
+  },
+  "keywords": [
+    "calendario",
+    "agenda",
+    "planificador",
+    "scheduling",
+    "geolocalización",
+    "optimización",
+    "tareas"
+  ],
+  "author": "Tu Nombre",
+  "license": "MIT",
+  "devDependencies": {
+    "eslint": "^8.50.0",
+    "http-server": "^14.1.1",
+    "live-server": "^1.2.2",
+    "prettier": "^3.0.3",
+    "jest": "^29.7.0"
+  },
+  "dependencies": {},
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/tu-usuario/calendario-inteligente.git"
+  },
+  "bugs": {
+    "url": "https://github.com/tu-usuario/calendario-inteligente/issues"
+  },
+  "homepage": "https://github.com/tu-usuario/calendario-inteligente#readme"
+}

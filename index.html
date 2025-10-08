@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calendario Inteligente</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Vista de Autenticación -->
+    <main id="authView" class="auth-view">
+        <div class="auth-card">
+            <div class="auth-header">
+                <img src="assets/logo.svg" alt="Logo" class="auth-logo">
+                <h1>Calendario Inteligente</h1>
+                <p>Planifica tus tareas de manera eficiente</p>
+            </div>
+            <form id="loginForm" class="auth-form">
+                <div class="input-group">
+                    <label for="loginEmail">Correo electrónico</label>
+                    <input type="email" id="loginEmail" placeholder="demo@demo.com" required>
+                </div>
+                <div class="input-group">
+                    <label for="loginPassword">Contraseña</label>
+                    <input type="password" id="loginPassword" placeholder="demo123" required>
+                </div>
+                <button type="submit" class="btn btn-primary btn-block">Iniciar Sesión</button>
+                <p class="auth-hint">
+                    <strong>Demo:</strong> demo@demo.com / demo123
+                </p>
+            </form>
+        </div>
+    </main>
+
+    <!-- Vista de Aplicación -->
+    <div id="appView" class="app-view" style="display:none;">
+        <!-- Topbar -->
+        <header class="topbar">
+            <div class="topbar-left">
+                <button id="toggleSidebar" class="btn-icon" title="Menú">☰</button>
+                <img src="assets/logo.svg" alt="Logo" class="topbar-logo">
+                <h1 class="topbar-title">Calendario Inteligente</h1>
+            </div>
+            <div class="topbar-right">
+                <button id="helpButton" class="btn-icon" title="Ayuda (?)">❓</button>
+                <div class="user-menu">
+                    <img src="assets/avatar.png" alt="Avatar" class="user-avatar">
+                    <span id="userEmail" class="user-email">usuario@ejemplo.com</span>
+                    <button id="logoutButton" class="btn btn-secondary btn-sm">Cerrar Sesión</button>
+                </div>
+            </div>
+        </header>
+
+        <div class="app-container">
+            <!-- Sidebar -->
+            <aside id="sidebar" class="sidebar">
+                <nav class="sidebar-nav">
+                    <a href="#" data-view="dashboard" class="nav-item active">
+                        <span class="nav-icon">📊</span>
+                        <span class="nav-label">Dashboard</span>
+                    </a>
+                    <a href="#" data-view="calendar" class="nav-item">
+                        <span class="nav-icon">📆</span>
+                        <span class="nav-label">Calendario</span>
+                    </a>
+                    <a href="#" data-view="tasks" class="nav-item">
+                        <span class="nav-icon">✓</span>
+                        <span class="nav-label">Tareas</span>
+                    </a>
+                    <a href="#" data-view="routePlanner" class="nav-item">
+                        <span class="nav-icon">🗺️</span>
+                        <span class="nav-label">Rutas</span>
+                    </a>
+                    <a href="#" data-view="settings" class="nav-item">
+                        <span class="nav-icon">⚙️</span>
+                        <span class="nav-label">Configuración</span>
+                    </a>
+                </nav>
+            </aside>
+
+            <!-- Main Content -->
+            <main class="main-content">
+                <!-- Dashboard View -->
+                <section id="viewDashboard" class="content-view active">
+                    <h2>📊 Dashboard</h2>
+
+                    <div class="dashboard-grid">
+                        <div class="card">
+                            <h3>📋 Tareas Pendientes</h3>
+                            <div id="dashboardUnassignedTasks" class="task-list"></div>
+                        </div>
+
+                        <div class="card">
+                            <h3>💡 Sugerencias del Día</h3>
+                            <div id="dashboardSuggestions" class="suggestions-list"></div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Calendar View -->
+                <section id="viewCalendar" class="content-view">
+                    <h2>📆 Calendario Semanal</h2>
+
+                    <div class="calendar-controls">
+                        <button id="prevWeek" class="btn btn-secondary">← Semana Anterior</button>
+                        <span id="currentWeek" class="week-display"></span>
+                        <button id="nextWeek" class="btn btn-secondary">Semana Siguiente →</button>
+                    </div>
+
+                    <div id="calendar" class="calendar-grid"></div>
+                </section>
+
+                <!-- Tasks View -->
+                <section id="viewTasks" class="content-view">
+                    <h2>✓ Gestión de Tareas</h2>
+
+                    <div class="card">
+                        <h3>➕ Añadir Nueva Tarea</h3>
+                        <form id="taskForm">
+                            <div class="form-row">
+                                <div class="input-group">
+                                    <label for="taskName">Nombre de la tarea:</label>
+                                    <input type="text" id="taskName" placeholder="Ej: Comprar verduras" required>
+                                </div>
+
+                                <div class="input-group">
+                                    <label for="taskDuration">Duración (horas):</label>
+                                    <input type="number" id="taskDuration" min="0.25" max="24" step="0.25" value="1" required>
+                                </div>
+                            </div>
+
+                            <div class="form-row">
+                                <div class="input-group">
+                                    <label for="taskLocation">Ubicación/Lugar:</label>
+                                    <input type="text" id="taskLocation" placeholder="Ej: Supermercado Centro" required>
+                                </div>
+
+                                <div class="input-group autocomplete-wrapper">
+                                    <label for="taskAddress">Dirección específica (opcional):</label>
+                                    <input type="text" id="taskAddress" placeholder="Ej: Calle Comercio 789" autocomplete="off">
+                                    <div id="taskAddressSuggestions" class="autocomplete-suggestions"></div>
+                                </div>
+                            </div>
+
+                            <div class="form-row">
+                                <div class="input-group">
+                                    <label for="taskPriority">Prioridad:</label>
+                                    <select id="taskPriority" required>
+                                        <option value="baja">Baja</option>
+                                        <option value="media" selected>Media</option>
+                                        <option value="alta">Alta</option>
+                                        <option value="urgente">Urgente</option>
+                                    </select>
+                                </div>
+
+                                <div class="input-group">
+                                    <label for="taskDeadline">Fecha límite (opcional):</label>
+                                    <input type="text" id="taskDeadline" placeholder="DD-MM-YYYY" maxlength="10">
+                                </div>
+                            </div>
+
+                            <div class="form-row">
+                                <div class="input-group">
+                                    <label for="taskWindowStart">Ventana inicio (opcional):</label>
+                                    <input type="text" id="taskWindowStart" placeholder="DD-MM-YYYY" maxlength="10">
+                                </div>
+
+                                <div class="input-group">
+                                    <label for="taskWindowEnd">Ventana fin (opcional):</label>
+                                    <input type="text" id="taskWindowEnd" placeholder="DD-MM-YYYY" maxlength="10">
+                                </div>
+                            </div>
+
+                            <button type="submit" class="btn btn-success">Añadir Tarea</button>
+                        </form>
+                    </div>
+
+                    <div class="card">
+                        <h3>📋 Tareas Pendientes (Sin Asignar)</h3>
+                        <div id="unassignedTasks" class="task-list"></div>
+                    </div>
+
+                    <div class="card">
+                        <h3>💡 Sugerencias Inteligentes</h3>
+                        <p style="color: var(--text-muted); margin-bottom: 16px;">
+                            El sistema analiza tus tareas y sugiere la mejor manera de agruparlas para ahorrar tiempo.
+                        </p>
+                        <div id="suggestions" class="suggestions-list"></div>
+                    </div>
+
+                    <div class="card">
+                        <h3>📋 Todas las Tareas</h3>
+                        <div id="allTasks" class="all-tasks-list"></div>
+                    </div>
+                </section>
+
+                <!-- Settings View -->
+                <section id="viewSettings" class="content-view">
+                    <h2>⚙️ Configuración</h2>
+
+                    <div class="card">
+                        <h3>📍 Ubicaciones</h3>
+                        <div class="locations-section">
+                            <div class="location-card">
+                                <h4>🏠 Casa</h4>
+                                <div class="input-group autocomplete-wrapper">
+                                    <label for="homeAddress">Dirección de casa:</label>
+                                    <input type="text" id="homeAddress" placeholder="Ej: Calle Principal 123, Ciudad" autocomplete="off">
+                                    <div id="homeAddressSuggestions" class="autocomplete-suggestions"></div>
+                                </div>
+                                <button id="detectHome" class="btn btn-secondary">📍 Detectar mi ubicación actual</button>
+                                <div id="homeCoords" class="coords-display"></div>
+                            </div>
+
+                            <div class="location-card">
+                                <h4>💼 Trabajo</h4>
+                                <div class="input-group autocomplete-wrapper">
+                                    <label for="workAddress">Dirección del trabajo:</label>
+                                    <input type="text" id="workAddress" placeholder="Ej: Avenida Empresarial 456, Ciudad" autocomplete="off">
+                                    <div id="workAddressSuggestions" class="autocomplete-suggestions"></div>
+                                </div>
+                                <button id="detectWork" class="btn btn-secondary">📍 Detectar mi ubicación actual</button>
+                                <div id="workCoords" class="coords-display"></div>
+                            </div>
+
+                            <div class="location-card">
+                                <h4>⏱️ Tiempos de traslado</h4>
+                                <div class="input-group">
+                                    <label for="homeToWork">Casa → Trabajo (minutos):</label>
+                                    <input type="number" id="homeToWork" min="0" step="5" placeholder="Ej: 30">
+                                </div>
+                                <div class="input-group">
+                                    <label for="workToHome">Trabajo → Casa (minutos):</label>
+                                    <input type="number" id="workToHome" min="0" step="5" placeholder="Ej: 35">
+                                </div>
+                                <button id="calculateCommute" class="btn btn-primary">🚗 Calcular automáticamente</button>
+                            </div>
+                        </div>
+                        <button id="saveLocations" class="btn btn-success btn-large">Guardar Ubicaciones</button>
+                        <div id="locationInfo" class="info-box"></div>
+                    </div>
+
+                    <div class="card">
+                        <h3>⏰ Horario Laboral</h3>
+                        <div class="work-schedule">
+                            <div class="input-group">
+                                <label for="workStart">Hora de inicio:</label>
+                                <input type="time" id="workStart" value="08:00">
+                            </div>
+                            <div class="input-group">
+                                <label for="workEnd">Hora de fin:</label>
+                                <input type="time" id="workEnd" value="17:30">
+                            </div>
+                            <button id="saveWorkSchedule" class="btn btn-primary">Guardar Horario</button>
+                        </div>
+                        <div id="scheduleInfo" class="info-box"></div>
+                    </div>
+
+                    <div class="card">
+                        <h3>🚗 Medio de Transporte Preferido</h3>
+                        <div class="transport-options">
+                            <div class="input-group">
+                                <label for="transportMode">Modo de transporte:</label>
+                                <select id="transportMode">
+                                    <option value="driving">🚗 Auto</option>
+                                    <option value="transit">🚌 Transporte Público</option>
+                                    <option value="bicycling">🚴 Bicicleta</option>
+                                    <option value="walking">🚶 A pie</option>
+                                </select>
+                            </div>
+                            <div class="input-group">
+                                <label for="maxDetour">Desvío máximo aceptable (minutos):</label>
+                                <input type="number" id="maxDetour" value="10" min="0" max="60" step="5">
+                                <small>Tiempo extra que estás dispuesto a agregar para hacer tareas en el camino</small>
+                            </div>
+                            <button id="saveTransport" class="btn btn-primary">Guardar Preferencias</button>
+                        </div>
+                        <div id="transportInfo" class="info-box"></div>
+                    </div>
+
+                    <div class="card">
+                        <h3>🔍 Tipos de Lugares de Interés</h3>
+                        <div class="poi-types">
+                            <label class="checkbox-label">
+                                <input type="checkbox" class="poi-type" value="supermercado" checked>
+                                <span>🛒 Supermercados</span>
+                            </label>
+                            <label class="checkbox-label">
+                                <input type="checkbox" class="poi-type" value="farmacia" checked>
+                                <span>💊 Farmacias</span>
+                            </label>
+                            <label class="checkbox-label">
+                                <input type="checkbox" class="poi-type" value="banco" checked>
+                                <span>🏦 Bancos/Cajeros</span>
+                            </label>
+                            <label class="checkbox-label">
+                                <input type="checkbox" class="poi-type" value="gasolinera">
+                                <span>⛽ Gasolineras</span>
+                            </label>
+                            <label class="checkbox-label">
+                                <input type="checkbox" class="poi-type" value="correo">
+                                <span>📮 Oficinas de Correo</span>
+                            </label>
+                            <label class="checkbox-label">
+                                <input type="checkbox" class="poi-type" value="tienda">
+                                <span>🏪 Tiendas de Conveniencia</span>
+                            </label>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Route Planner View -->
+                <section id="viewRoutePlanner" class="content-view">
+                    <h2>🗺️ Planificador de Rutas</h2>
+
+                    <div class="card">
+                        <h3>Planificar Ruta Optimizada</h3>
+                        <div class="route-planner-controls">
+                            <div class="form-row">
+                                <div class="input-group">
+                                    <label for="routeOrigin">Origen:</label>
+                                    <select id="routeOrigin">
+                                        <option value="home">🏠 Casa</option>
+                                        <option value="work">💼 Trabajo</option>
+                                        <option value="current">📍 Mi ubicación actual</option>
+                                    </select>
+                                </div>
+                                <div class="input-group">
+                                    <label for="routeDestination">Destino:</label>
+                                    <select id="routeDestination">
+                                        <option value="work">💼 Trabajo</option>
+                                        <option value="home">🏠 Casa</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="input-group">
+                                <label for="routeTime">Hora estimada de salida:</label>
+                                <input type="time" id="routeTime" value="08:00">
+                            </div>
+                            <button id="calculateRoute" class="btn btn-success btn-large">🔍 Buscar Ruta Optimizada</button>
+                        </div>
+                    </div>
+
+                    <div id="routeResults" class="route-results" style="display:none;">
+                        <div class="card">
+                            <h3>📍 Ruta Sugerida</h3>
+                            <div id="routeMap" class="route-map-container"></div>
+                            <div id="routeSummary" class="route-summary"></div>
+                        </div>
+
+                        <div class="card">
+                            <h3>🛍️ Lugares en la Ruta</h3>
+                            <div id="poisOnRoute" class="pois-list"></div>
+                        </div>
+
+                        <div class="card">
+                            <h3>✅ Tareas que puedes hacer en el camino</h3>
+                            <div id="tasksOnRoute" class="tasks-on-route"></div>
+                        </div>
+                    </div>
+                </section>
+            </main>
+        </div>
+    </div>
+
+    <!-- Modal de Ayuda -->
+    <div id="helpModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>🚀 Cómo Usar el Calendario Inteligente</h2>
+
+            <div class="help-section">
+                <h3>1️⃣ Configurar Ubicaciones 📍</h3>
+                <ol>
+                    <li>Ve a <strong>"⚙️ Configuración"</strong></li>
+                    <li>Escribe tu dirección de casa (aparecerán sugerencias)</li>
+                    <li>O usa <strong>"📍 Detectar mi ubicación actual"</strong> con GPS</li>
+                    <li>Repite para tu trabajo</li>
+                    <li>Haz clic en <strong>"🚗 Calcular automáticamente"</strong> para tiempos de traslado</li>
+                    <li>Guarda con el botón verde</li>
+                </ol>
+            </div>
+
+            <div class="help-section">
+                <h3>2️⃣ Configurar Horario Laboral ⏰</h3>
+                <ol>
+                    <li>En Configuración, ajusta tu hora de inicio (ej: 08:00)</li>
+                    <li>Ajusta tu hora de fin (ej: 17:30)</li>
+                    <li>Haz clic en <strong>"Guardar Horario"</strong></li>
+                </ol>
+            </div>
+
+            <div class="help-section">
+                <h3>3️⃣ Agregar Tareas ➕</h3>
+                <ol>
+                    <li>Ve a la vista <strong>"✓ Tareas"</strong></li>
+                    <li>Completa el formulario con nombre, duración, ubicación, etc.</li>
+                    <li>Haz clic en <strong>"Añadir Tarea"</strong></li>
+                </ol>
+            </div>
+
+            <div class="help-section">
+                <h3>4️⃣ Ver Sugerencias 💡</h3>
+                <p>En el Dashboard, la app te sugiere automáticamente:</p>
+                <ul>
+                    <li><strong>🗺️ Tareas cercanas</strong>: Agrupa tareas a menos de 2km</li>
+                    <li><strong>⚠️ Tareas urgentes</strong>: Prioriza lo importante</li>
+                    <li><strong>⏰ Fechas límite</strong>: Te alerta cuando se acercan</li>
+                </ul>
+            </div>
+
+            <div class="help-section">
+                <h3>💡 Atajos de Teclado</h3>
+                <ul>
+                    <li><strong>G + D</strong>: Ir al Dashboard</li>
+                    <li><strong>G + C</strong>: Ir al Calendario</li>
+                    <li><strong>G + T</strong>: Ir a Tareas</li>
+                    <li><strong>?</strong>: Mostrar ayuda</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div id="toastContainer" class="toast-container"></div>
+
+    <script src="config.js"></script>
+    <script src="google-maps-api.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>

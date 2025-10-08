@@ -1,0 +1,54 @@
+# Configuración sensible
+config.js
+
+# API Keys y secretos
+.env
+.env.local
+.env.*.local
+
+# Node modules
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Build outputs
+dist/
+build/
+.next/
+out/
+
+# Cache
+.cache/
+.parcel-cache/
+.vscode/
+.idea/
+
+# Sistema operativo
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+
+# Logs
+logs/
+*.log
+
+# Base de datos local
+*.db
+*.sqlite
+*.sqlite3
+
+# Tokens y credenciales
+tokens/
+credentials/
+*.pem
+*.key
+
+# Testing
+coverage/
+.nyc_output/
+
+# Temporal
+tmp/
+temp/
