@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Calendario Inteligente</title>
     <link rel="stylesheet" href="styles.css">
+    <!-- FullCalendar CSS -->
+    <link id="fc-css" rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.css" onerror="this.onerror=null; this.href='https://unpkg.com/fullcalendar@5.11.3/main.min.css'">
 </head>
 <body>
     <!-- Vista de Autenticación -->
@@ -99,15 +101,36 @@
 
                 <!-- Calendar View -->
                 <section id="viewCalendar" class="content-view">
-                    <h2>📆 Calendario Semanal</h2>
-
-                    <div class="calendar-controls">
-                        <button id="prevWeek" class="btn btn-secondary">← Semana Anterior</button>
-                        <span id="currentWeek" class="week-display"></span>
-                        <button id="nextWeek" class="btn btn-secondary">Semana Siguiente →</button>
+                    <div class="calendar-header">
+                        <h2>📆 Calendario de Actividades</h2>
+                        <div style="display: flex; gap: 8px;">
+                            <button id="optimizeTodayRoute" class="btn btn-success" title="Optimizar ruta de hoy con tráfico" onclick="optimizeTodayRoute()">
+                                🚗 Optimizar hoy
+                            </button>
+                            <button id="addTaskFromCalendar" class="btn btn-primary btn-add-task" title="Añadir nueva tarea">
+                                ➕ Nueva Tarea
+                            </button>
+                        </div>
                     </div>
 
-                    <div id="calendar" class="calendar-grid"></div>
+                    <div class="card calendar-card">
+                        <div id="fullcalendar" class="fullcalendar-container"></div>
+                        <div class="calendar-legend">
+                            <span class="legend-item">
+                                <span class="legend-dot" style="background: var(--brand)"></span>
+                                Tareas asignadas
+                            </span>
+                            <span class="legend-item">
+                                <span class="legend-dot" style="background: var(--ok)"></span>
+                                Trabajo
+                            </span>
+                            <span class="legend-item">
+                                <span class="legend-dot" style="background: var(--warn)"></span>
+                                Urgente
+                            </span>
+                            <span class="legend-item">Click en evento para ver detalles / arrastre para mover</span>
+                        </div>
+                    </div>
                 </section>
 
                 <!-- Tasks View -->
@@ -192,6 +215,8 @@
                         <h3>📋 Todas las Tareas</h3>
                         <div id="allTasks" class="all-tasks-list"></div>
                     </div>
+
+                    <div id="archivedInfo"></div>
                 </section>
 
                 <!-- Settings View -->
@@ -421,10 +446,135 @@
         </div>
     </div>
 
+    <!-- Modal Flotante para Tareas -->
+    <div id="taskModal" class="task-modal" style="display: none;">
+        <div class="task-modal-content">
+            <div class="task-modal-header">
+                <h3 id="taskModalTitle">➕ Nueva Tarea</h3>
+                <button class="task-modal-close" onclick="closeTaskModal()">✕</button>
+            </div>
+
+            <form id="taskModalForm" class="task-modal-form">
+                <input type="hidden" id="modalTaskId">
+                <input type="hidden" id="modalTaskPlaceId">
+
+                <div class="form-group">
+                    <label for="modalTaskName">Nombre de la tarea:</label>
+                    <input type="text" id="modalTaskName" placeholder="Ej: Comprar verduras" required>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="modalTaskDuration">Duración (horas):</label>
+                        <input type="number" id="modalTaskDuration" min="0.25" max="24" step="0.25" value="1" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="modalTaskPriority">Prioridad:</label>
+                        <select id="modalTaskPriority" required>
+                            <option value="baja">Baja</option>
+                            <option value="media" selected>Media</option>
+                            <option value="alta">Alta</option>
+                            <option value="urgente">Urgente</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="modalTaskLocation">Ubicación/Lugar:</label>
+                    <input type="text" id="modalTaskLocation" placeholder="Ej: Supermercado Centro" required>
+                </div>
+
+                <div class="form-group autocomplete-wrapper">
+                    <label for="modalTaskAddress">Dirección específica (opcional):</label>
+                    <input type="text" id="modalTaskAddress" placeholder="Ej: Calle Comercio 789" autocomplete="off">
+                    <div id="modalTaskAddressSuggestions" class="autocomplete-suggestions"></div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="modalTaskDate">Fecha (opcional):</label>
+                        <input type="date" id="modalTaskDate">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="modalTaskTime">Hora (opcional):</label>
+                        <input type="time" id="modalTaskTime" step="900">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="modalTaskDeadline">Fecha límite (opcional):</label>
+                    <input type="date" id="modalTaskDeadline">
+                </div>
+
+                <div class="form-group">
+                    <label for="modalTaskStatus">Estado:</label>
+                    <select id="modalTaskStatus">
+                        <option value="active">Activa</option>
+                        <option value="pending">Pendiente</option>
+                        <option value="archived">Archivada</option>
+                    </select>
+                </div>
+
+                <div class="task-modal-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeTaskModal()">Cancelar</button>
+                    <button type="button" id="btnDeleteTask" class="btn btn-danger" onclick="deleteTaskFromModal()" style="display: none;">
+                        🗑️ Eliminar
+                    </button>
+                    <button type="button" id="btnArchiveTask" class="btn btn-warning" onclick="archiveTaskFromModal()" style="display: none;">
+                        📦 Archivar
+                    </button>
+                    <button type="submit" class="btn btn-primary">💾 Guardar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- Toast Container -->
     <div id="toastContainer" class="toast-container"></div>
 
+    <!-- FullCalendar JS with fallback -->
+    <script>
+        (function loadFullCalendarWithFallback() {
+            const cdns = [
+                'https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.js',
+                'https://unpkg.com/fullcalendar@5.11.3/main.min.js'
+            ];
+            function loadNext(i) {
+                if (i >= cdns.length) {
+                    console.error('No se pudo cargar FullCalendar desde CDNs');
+                    return;
+                }
+                const s = document.createElement('script');
+                s.src = cdns[i];
+                s.async = false;
+                s.onload = () => { console.log('FullCalendar cargado desde', cdns[i]); };
+                s.onerror = () => { loadNext(i + 1); };
+                document.head.appendChild(s);
+            }
+            loadNext(0);
+        })();
+    </script>
     <script src="config.js"></script>
+
+    <!-- Google Maps JavaScript API con Places Library -->
+    <script>
+        (function() {
+            if (window.APP_CONFIG && window.APP_CONFIG.useGoogleMaps && window.APP_CONFIG.googleMapsFrontendKey) {
+                const script = document.createElement('script');
+                script.src = `https://maps.googleapis.com/maps/api/js?key=${window.APP_CONFIG.googleMapsFrontendKey}&libraries=places&language=es`;
+                script.async = true;
+                script.defer = true;
+                script.onload = () => console.log('✅ Google Maps JavaScript API cargada');
+                script.onerror = () => console.error('❌ Error cargando Google Maps JavaScript API');
+                document.head.appendChild(script);
+            } else {
+                console.log('ℹ️ Google Maps desactivado o sin API key - usando Nominatim');
+            }
+        })();
+    </script>
+
     <script src="google-maps-api.js"></script>
     <script src="app.js"></script>
 </body>

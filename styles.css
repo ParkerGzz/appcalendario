@@ -559,10 +559,17 @@ body {
   padding: 16px;
   border-radius: 6px;
   transition: transform 0.2s;
+  cursor: pointer;
 }
 
 .task-item:hover {
   transform: translateX(4px);
+}
+
+.task-item.task-archived {
+  opacity: 0.5;
+  background: rgba(255, 255, 255, 0.01);
+  filter: grayscale(50%);
 }
 
 .task-item.priority-urgente {
@@ -674,6 +681,25 @@ body {
   padding: 16px;
 }
 
+/* Alertas inteligentes con prioridades */
+.suggestion-item.urgent {
+  background: rgba(239, 68, 68, 0.1);
+  border-color: var(--danger);
+  border-left: 4px solid var(--danger);
+}
+
+.suggestion-item.warning {
+  background: rgba(245, 158, 11, 0.1);
+  border-color: var(--warn);
+  border-left: 4px solid var(--warn);
+}
+
+.suggestion-item.info {
+  background: rgba(59, 130, 246, 0.1);
+  border-color: #3b82f6;
+  border-left: 4px solid #3b82f6;
+}
+
 .suggestion-header {
   display: flex;
   justify-content: space-between;
@@ -692,6 +718,16 @@ body {
   color: var(--text-muted);
   font-size: 14px;
   margin-bottom: 12px;
+}
+
+/* Estilos para place-info-section */
+.place-info-section {
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.place-info-section > div {
+  margin: 4px 0;
 }
 
 .suggestion-tasks {
@@ -1263,4 +1299,505 @@ body {
 .map-note {
   font-size: 0.9em;
   opacity: 0.7;
+}
+
+/* ========== FULLCALENDAR NUEVO DISEÑO ========== */
+.calendar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.calendar-header h2 {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 700;
+}
+
+.btn-add-task {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.calendar-card {
+  padding: 0;
+  overflow: hidden;
+}
+
+.fullcalendar-container {
+  min-height: 680px;
+  padding: 16px;
+}
+
+.calendar-legend {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+  padding: 12px 20px;
+  border-top: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.02);
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.legend-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+/* FullCalendar v5 theming - adaptado para tema oscuro */
+.fc {
+  --fc-border-color: var(--border);
+  --fc-page-bg-color: transparent;
+  --fc-neutral-bg-color: rgba(255, 255, 255, 0.03);
+  --fc-today-bg-color: rgba(124, 58, 237, 0.15);
+  --fc-event-bg-color: var(--brand);
+  --fc-event-border-color: var(--brand);
+  --fc-event-text-color: #fff;
+}
+
+.fc .fc-toolbar.fc-header-toolbar {
+  padding: 8px 4px;
+  margin-bottom: 20px;
+}
+
+.fc .fc-toolbar-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.fc .fc-button {
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text);
+  border-radius: 8px;
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.fc .fc-button:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: var(--brand);
+}
+
+.fc .fc-button-primary:not(:disabled).fc-button-active,
+.fc .fc-button-primary:not(:disabled):active {
+  background: var(--brand);
+  color: #fff;
+  border-color: var(--brand);
+  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.2);
+}
+
+.fc .fc-today-button.fc-button-primary {
+  background: var(--brand);
+  color: #fff;
+  border-color: var(--brand);
+}
+
+.fc .fc-col-header-cell {
+  background: rgba(255, 255, 255, 0.03);
+  border-color: var(--border);
+}
+
+.fc .fc-col-header-cell-cushion {
+  color: var(--text-muted);
+  font-weight: 600;
+  padding: 12px 4px;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.fc .fc-daygrid-day-number,
+.fc .fc-timegrid-slot-label-cushion {
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.fc .fc-daygrid-day.fc-day-today {
+  background: var(--fc-today-bg-color) !important;
+}
+
+.fc .fc-daygrid-day.fc-day-today .fc-daygrid-day-number {
+  color: var(--brand);
+  font-weight: 700;
+}
+
+/* Event styling */
+.fc .fc-event {
+  border-radius: 6px;
+  border: none;
+  padding: 2px 6px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.fc .fc-event:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(124, 58, 237, 0.3);
+}
+
+.fc .fc-timegrid-event {
+  border-left: 3px solid;
+}
+
+.fc .fc-daygrid-event {
+  margin: 2px 4px;
+}
+
+/* Priority-based colors */
+.fc-event.priority-urgente {
+  background: var(--danger) !important;
+  border-color: var(--danger) !important;
+}
+
+.fc-event.priority-alta {
+  background: var(--warn) !important;
+  border-color: var(--warn) !important;
+}
+
+.fc-event.priority-media {
+  background: var(--brand) !important;
+  border-color: var(--brand) !important;
+}
+
+.fc-event.priority-baja {
+  background: var(--ok) !important;
+  border-color: var(--ok) !important;
+}
+
+.fc-event.work-block {
+  background: #334155 !important;
+  border-color: #475569 !important;
+  opacity: 0.7;
+}
+
+.fc-event.task-pending {
+  opacity: 0.6;
+  font-style: italic;
+  border: 2px dashed !important;
+}
+
+/* Slot styling */
+.fc .fc-timegrid-slot {
+  height: 3em;
+  border-color: rgba(255, 255, 255, 0.05);
+}
+
+.fc .fc-timegrid-slot-label {
+  border-color: var(--border);
+}
+
+/* Weekend styling */
+.fc .fc-day-sat,
+.fc .fc-day-sun {
+  background: rgba(0, 0, 0, 0.15);
+}
+
+/* Scrollbar styling for calendar */
+.fc-scroller::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.fc-scroller::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+}
+
+.fc-scroller::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+}
+
+.fc-scroller::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* More link */
+.fc .fc-more-link {
+  color: var(--brand);
+  font-weight: 600;
+}
+
+.fc .fc-more-link:hover {
+  color: var(--text);
+  background: rgba(124, 58, 237, 0.1);
+}
+
+/* ========== MODAL FLOTANTE PARA TAREAS ========== */
+.task-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(4px);
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.task-modal-content {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  width: 100%;
+  max-width: 600px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(30px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.task-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--border);
+}
+
+.task-modal-header h3 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.task-modal-close {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: 24px;
+  cursor: pointer;
+  padding: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+}
+
+.task-modal-close:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text);
+}
+
+.task-modal-form {
+  padding: 24px;
+}
+
+.task-modal-form .form-group {
+  margin-bottom: 18px;
+}
+
+.task-modal-form .form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.task-modal-form label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.task-modal-form input[type="text"],
+.task-modal-form input[type="number"],
+.task-modal-form input[type="time"],
+.task-modal-form input[type="date"],
+.task-modal-form select {
+  width: 100%;
+  padding: 10px 14px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  font-size: 14px;
+  transition: all 0.2s ease;
+}
+
+/* Estilo para date y time inputs */
+.task-modal-form input[type="date"]::-webkit-calendar-picker-indicator,
+.task-modal-form input[type="time"]::-webkit-calendar-picker-indicator {
+  filter: invert(1);
+  cursor: pointer;
+}
+
+.task-modal-form input[type="date"],
+.task-modal-form input[type="time"] {
+  color-scheme: dark;
+}
+
+.task-modal-form input:focus,
+.task-modal-form select:focus {
+  outline: none;
+  border-color: var(--brand);
+  background: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.1);
+}
+
+/* Autocomplete dentro del modal */
+.task-modal-form .autocomplete-wrapper {
+  position: relative;
+}
+
+.task-modal-form .autocomplete-suggestions {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-top: none;
+  border-radius: 0 0 8px 8px;
+  max-height: 200px;
+  overflow-y: auto;
+  z-index: 10001;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.task-modal-form .autocomplete-suggestions div {
+  padding: 10px 14px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+  font-size: 13px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.task-modal-form .autocomplete-suggestions div:hover {
+  background: rgba(124, 58, 237, 0.2);
+}
+
+.task-modal-form .autocomplete-suggestions div:last-child {
+  border-bottom: none;
+}
+
+.task-modal-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+  margin-top: 24px;
+}
+
+.task-modal-actions .btn {
+  padding: 10px 20px;
+  font-size: 14px;
+  font-weight: 600;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.task-modal-actions .btn-danger {
+  background: var(--danger);
+  color: white;
+  border: none;
+}
+
+.task-modal-actions .btn-danger:hover {
+  background: #dc2626;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+}
+
+.task-modal-actions .btn-warning {
+  background: var(--warn);
+  color: white;
+  border: none;
+}
+
+.task-modal-actions .btn-warning:hover {
+  background: #f59e0b;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+}
+
+/* Scrollbar para el modal */
+.task-modal-content::-webkit-scrollbar {
+  width: 8px;
+}
+
+.task-modal-content::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+}
+
+.task-modal-content::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+}
+
+.task-modal-content::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* Archived tasks banner */
+.archived-banner {
+  background: rgba(245, 158, 11, 0.1);
+  border: 1px solid var(--warn);
+  border-radius: 8px;
+  padding: 16px;
+  margin-top: 20px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: center;
+}
+
+.archived-banner:hover {
+  background: rgba(245, 158, 11, 0.15);
+  transform: translateY(-2px);
+}
+
+.archived-banner .link {
+  color: var(--warn);
+  text-decoration: underline;
+  font-weight: 600;
 }

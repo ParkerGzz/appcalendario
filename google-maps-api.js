@@ -260,7 +260,127 @@ async function googlePlacesNearby(location, radius = 2000, includedTypes = [], m
 }
 
 /**
- * Parsea un lugar de Google Places API
+ * Obtiene detalles completos de un lugar usando Place ID
+ * @param {String} placeId - ID del lugar de Google
+ * @returns {Promise<Object>} - Detalles completos del lugar
+ */
+async function googlePlaceDetails(placeId) {
+    if (!window.google || !window.google.maps || !window.google.maps.places) {
+        throw new Error('Google Places API no está cargada');
+    }
+
+    return new Promise((resolve, reject) => {
+        const service = new google.maps.places.PlacesService(document.createElement('div'));
+
+        service.getDetails(
+            {
+                placeId: placeId,
+                fields: [
+                    'name',
+                    'formatted_address',
+                    'geometry',
+                    'place_id',
+                    'rating',
+                    'user_ratings_total',
+                    'opening_hours',
+                    'business_status',
+                    'formatted_phone_number',
+                    'website',
+                    'price_level',
+                    'photos',
+                    'reviews',
+                    'types',
+                    'url'
+                ]
+            },
+            (place, status) => {
+                if (status === google.maps.places.PlacesServiceStatus.OK) {
+                    resolve(parseGooglePlaceDetails(place));
+                } else {
+                    reject(new Error(`Place Details error: ${status}`));
+                }
+            }
+        );
+    });
+}
+
+/**
+ * Parsea detalles completos de un lugar
+ * @param {Object} place - Resultado de Places Details API
+ * @returns {Object} - Información formateada
+ */
+function parseGooglePlaceDetails(place) {
+    const openingHours = place.opening_hours;
+    const isOpenNow = openingHours?.isOpen() || false;
+
+    // Obtener horarios de la semana
+    const weekdayText = openingHours?.weekday_text || [];
+
+    // Obtener horarios de hoy
+    let todayHours = null;
+    if (openingHours && openingHours.periods) {
+        const today = new Date().getDay();
+        const todayPeriod = openingHours.periods.find(p => p.open.day === today);
+        if (todayPeriod) {
+            todayHours = {
+                open: todayPeriod.open.time,
+                close: todayPeriod.close?.time || '2400'
+            };
+        }
+    }
+
+    // Obtener fotos
+    const photos = [];
+    if (place.photos && place.photos.length > 0) {
+        place.photos.slice(0, 5).forEach(photo => {
+            photos.push({
+                url: photo.getUrl({ maxWidth: 400, maxHeight: 300 }),
+                attributions: photo.html_attributions
+            });
+        });
+    }
+
+    // Obtener reseñas
+    const reviews = [];
+    if (place.reviews && place.reviews.length > 0) {
+        place.reviews.slice(0, 3).forEach(review => {
+            reviews.push({
+                author: review.author_name,
+                rating: review.rating,
+                text: review.text,
+                time: review.relative_time_description
+            });
+        });
+    }
+
+    return {
+        placeId: place.place_id,
+        name: place.name || 'Sin nombre',
+        address: place.formatted_address || '',
+        lat: place.geometry?.location.lat() || 0,
+        lng: place.geometry?.location.lng() || 0,
+        rating: place.rating || null,
+        ratingCount: place.user_ratings_total || 0,
+        priceLevel: place.price_level || null, // 0-4 ($ a $$$$)
+        phone: place.formatted_phone_number || null,
+        website: place.website || null,
+        googleMapsUrl: place.url || null,
+        types: place.types || [],
+        businessStatus: place.business_status || null,
+
+        // Horarios
+        isOpenNow: isOpenNow,
+        weekdayText: weekdayText,
+        todayHours: todayHours,
+
+        // Contenido
+        photos: photos,
+        reviews: reviews
+    };
+}
+
+/**
+ * Parsea un lugar de Google Places API (versión simplificada)
  * @param {Object} place - Lugar de Places API
  * @returns {Object} - Información formateada
  */
@@ -395,7 +515,9 @@ window.GoogleMapsAPI = {
     calculateDetour: googleCalculateDetour,
     placesAlongRoute: googlePlacesAlongRoute,
     placesNearby: googlePlacesNearby,
+    placeDetails: googlePlaceDetails,
     parsePlace: parseGooglePlace,
+    parsePlaceDetails: parseGooglePlaceDetails,
     planRouteWithStops: googlePlanRouteWithStops
 };
 

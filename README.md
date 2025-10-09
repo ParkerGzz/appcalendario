@@ -507,5 +507,23 @@ La aplicación detecta automáticamente qué API usar:
 
 ---
 
-**Versión Actual**: 2.0.0 (Con integración Google Maps)
+## 🆕 Nuevo en v2.1: Calendario FullCalendar
+
+### ✨ Vista Profesional del Calendario
+
+La aplicación ahora usa **FullCalendar v5**, una librería profesional para gestión de calendarios:
+
+- **📅 Múltiples vistas**: Mes, Semana (time grid), Día
+- **🎯 Arrastrar y soltar**: Mueve tareas entre días y horas
+- **📏 Redimensionar eventos**: Cambia la duración arrastrando
+- **➕ Botón "+ Nueva Tarea"**: Acceso rápido desde el calendario
+- **🎨 Tema oscuro**: Adaptado al diseño de la app
+- **⏰ Indicador de hora actual**: Línea roja que muestra la hora
+- **🖱️ Interactivo**: Click en eventos para ver detalles o desasignar
+
+Ver guía completa: **[FULLCALENDAR-INTEGRATION.md](FULLCALENDAR-INTEGRATION.md)**
+
+---
+
+**Versión Actual**: 2.1.0 (Con FullCalendar + Google Maps)
 **Última Actualización**: Enero 2025

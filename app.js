@@ -68,6 +68,9 @@ let state = {
     currentWeekStart: new Date()
 };
 
+// FullCalendar instance
+let fullCalendar = null;
+
 // Inicialización
 document.addEventListener('DOMContentLoaded', () => {
     loadSession();
@@ -228,20 +231,118 @@ function updateDashboard() {
         `).join('');
     }
 
-    suggestionsEl.innerHTML = '<p class="empty-state">Cargando sugerencias...</p>';
-    setTimeout(() => {
-        const suggestions = generateSuggestions();
-        if (suggestions.length === 0) {
-            suggestionsEl.innerHTML = '<p class="empty-state">No hay sugerencias disponibles</p>';
-        } else {
-            suggestionsEl.innerHTML = suggestions.slice(0, 3).map(s => `
-                <div class="suggestion-item">
-                    <div class="suggestion-title">${s.title}</div>
-                    <div class="suggestion-body">${s.reason}</div>
-                </div>
-            `).join('');
+    // Generar alertas inteligentes
+    const smartAlerts = generateSmartAlerts();
+    const suggestions = generateSuggestions();
+    const allSuggestions = [...smartAlerts, ...suggestions];
+
+    if (allSuggestions.length === 0) {
+        suggestionsEl.innerHTML = '<p class="empty-state">No hay sugerencias disponibles</p>';
+    } else {
+        suggestionsEl.innerHTML = allSuggestions.slice(0, 5).map(s => `
+            <div class="suggestion-item ${s.priority || ''}">
+                <div class="suggestion-title">${s.title}</div>
+                <div class="suggestion-body">${s.reason}</div>
+            </div>
+        `).join('');
+    }
+}
+
+// Generar alertas inteligentes basadas en datos de Google Places
+function generateSmartAlerts() {
+    const alerts = [];
+    const now = new Date();
+    const currentHour = now.getHours();
+    const currentMinutes = now.getMinutes();
+    const currentTime = currentHour * 100 + currentMinutes;
+
+    // Revisar tareas de hoy
+    const todayStr = formatDateToString(now);
+    const todayTasks = state.tasks.filter(t =>
+        t.assignedDate === todayStr &&
+        t.status === 'active' &&
+        t.placeDetails
+    );
+
+    todayTasks.forEach(task => {
+        const details = task.placeDetails;
+
+        // Alerta: Lugar cerrado
+        if (details.isOpenNow === false) {
+            alerts.push({
+                title: `⚠️ ${task.name} - Lugar cerrado`,
+                reason: `El lugar está cerrado actualmente. Revisa el horario y reprograma la tarea.`,
+                priority: 'urgent'
+            });
         }
-    }, 100);
+
+        // Alerta: Cierra pronto (en las próximas 2 horas)
+        if (details.isOpenNow && details.todayHours && details.todayHours.close) {
+            const closeTime = parseInt(details.todayHours.close);
+            const minutesUntilClose = ((Math.floor(closeTime / 100) - currentHour) * 60) +
+                                      ((closeTime % 100) - currentMinutes);
+
+            if (minutesUntilClose > 0 && minutesUntilClose <= 120) {
+                const hours = Math.floor(minutesUntilClose / 60);
+                const mins = minutesUntilClose % 60;
+                const timeLeft = hours > 0 ? `${hours}h ${mins}min` : `${mins}min`;
+
+                alerts.push({
+                    title: `⏰ ${task.name} - Cierra pronto`,
+                    reason: `El lugar cierra en ${timeLeft}. Considera ir ahora o reprogramar.`,
+                    priority: 'warning'
+                });
+            }
+        }
+
+        // Alerta: Ya pasó la hora asignada
+        if (task.assignedTime) {
+            const [taskHour, taskMinute] = task.assignedTime.split(':').map(Number);
+            const taskTime = taskHour * 100 + taskMinute;
+
+            if (currentTime > taskTime + 30) { // 30 minutos de margen
+                alerts.push({
+                    title: `📅 ${task.name} - Hora pasada`,
+                    reason: `La tarea estaba programada para las ${task.assignedTime}. ¿Ya la completaste?`,
+                    priority: 'info'
+                });
+            }
+        }
+    });
+
+    // Alertas para tareas no asignadas con lugares que cierran hoy
+    const unassignedWithPlace = state.tasks.filter(t =>
+        !t.assignedDate &&
+        t.status === 'active' &&
+        t.placeDetails &&
+        t.placeDetails.todayHours
+    );
+
+    unassignedWithPlace.forEach(task => {
+        const details = task.placeDetails;
+        if (details.todayHours && details.todayHours.close) {
+            const closeTime = parseInt(details.todayHours.close);
+            const closeHour = formatTime24(closeTime);
+
+            alerts.push({
+                title: `💡 ${task.name} - Disponible hoy`,
+                reason: `El lugar cierra hoy a las ${closeHour}. ¿Quieres programarla para hoy?`,
+                priority: 'info'
+            });
+        }
+    });
+
+    // Alerta: Sugerencia de optimización de ruta
+    const todayTasksWithLocation = todayTasks.filter(t => t.lat && t.lng);
+    if (todayTasksWithLocation.length >= 2) {
+        alerts.push({
+            title: `🗺️ Optimiza tu ruta de hoy`,
+            reason: `Tienes ${todayTasksWithLocation.length} tareas con ubicación. Haz clic en "🚗 Optimizar hoy" en el calendario para ordenarlas por tráfico.`,
+            priority: 'info'
+        });
+    }
+
+    return alerts;
 }
 
 // ===== HELP MODAL =====
@@ -311,14 +412,23 @@ function setupEventListeners() {
     // Tareas
     document.getElementById('taskForm').addEventListener('submit', addTask);
 
+    // Modal de tareas
+    document.getElementById('taskModalForm').addEventListener('submit', saveTaskFromModal);
+
     // Calendario
-    document.getElementById('prevWeek').addEventListener('click', () => navigateWeek(-1));
-    document.getElementById('nextWeek').addEventListener('click', () => navigateWeek(1));
+    document.getElementById('prevWeek')?.addEventListener('click', () => navigateWeek(-1));
+    document.getElementById('nextWeek')?.addEventListener('click', () => navigateWeek(1));
+
+    // Botón "+ Nueva Tarea" desde calendario - abrir modal
+    document.getElementById('addTaskFromCalendar')?.addEventListener('click', () => {
+        openTaskModal();
+    });
 
     // Autocompletado de direcciones
     setupAddressAutocomplete('homeAddress', 'homeAddressSuggestions', 'home');
     setupAddressAutocomplete('workAddress', 'workAddressSuggestions', 'work');
     setupAddressAutocomplete('taskAddress', 'taskAddressSuggestions', 'task');
+    setupAddressAutocomplete('modalTaskAddress', 'modalTaskAddressSuggestions', 'modal');
 
     // Transporte
     document.getElementById('saveTransport')?.addEventListener('click', saveTransportPreferences);
@@ -402,21 +512,27 @@ async function searchAddresses(query, suggestionsId, inputId, type) {
     suggestionsContainer.classList.add('active');
 
     try {
-        const response = await fetch(
-            `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=5&addressdetails=1`,
-            {
-                headers: {
-                    'User-Agent': 'CalendarioInteligente/1.0'
-                }
-            }
-        );
-
-        const data = await response.json();
-
-        if (data && data.length > 0) {
-            displaySuggestions(data, suggestionsId, inputId, type);
+        // Usar Google Places API si está configurado
+        if (window.APP_CONFIG.useGoogleMaps && window.APP_CONFIG.googleMapsFrontendKey) {
+            await searchWithGooglePlaces(query, suggestionsId, inputId, type);
         } else {
-            suggestionsContainer.innerHTML = '<div class="autocomplete-no-results">No se encontraron direcciones</div>';
+            // Fallback a Nominatim
+            const response = await fetch(
+                `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=5&addressdetails=1`,
+                {
+                    headers: {
+                        'User-Agent': 'CalendarioInteligente/1.0'
+                    }
+                }
+            );
+
+            const data = await response.json();
+
+            if (data && data.length > 0) {
+                displaySuggestions(data, suggestionsId, inputId, type, 'nominatim');
+            } else {
+                suggestionsContainer.innerHTML = '<div class="autocomplete-no-results">No se encontraron direcciones</div>';
+            }
         }
     } catch (error) {
         console.error('Error buscando direcciones:', error);
@@ -424,18 +540,68 @@ async function searchAddresses(query, suggestionsId, inputId, type) {
     }
 }
 
-function displaySuggestions(suggestions, suggestionsId, inputId, type) {
+async function searchWithGooglePlaces(query, suggestionsId, inputId, type) {
+    const suggestionsContainer = document.getElementById(suggestionsId);
+
+    if (!window.google || !window.google.maps || !window.google.maps.places) {
+        console.error('Google Places API no está cargada');
+        suggestionsContainer.innerHTML = '<div class="autocomplete-no-results">Error: Google Places API no disponible</div>';
+        return;
+    }
+
+    const service = new google.maps.places.AutocompleteService();
+
+    service.getPlacePredictions(
+        {
+            input: query,
+            language: 'es',
+            types: ['address', 'establishment']
+        },
+        (predictions, status) => {
+            if (status === google.maps.places.PlacesServiceStatus.OK && predictions) {
+                displaySuggestions(predictions, suggestionsId, inputId, type, 'google');
+            } else {
+                suggestionsContainer.innerHTML = '<div class="autocomplete-no-results">No se encontraron direcciones</div>';
+            }
+        }
+    );
+}
+
+function displaySuggestions(suggestions, suggestionsId, inputId, type, source = 'nominatim') {
     const container = document.getElementById(suggestionsId);
     selectedSuggestionIndex[inputId] = -1;
 
     container.innerHTML = suggestions.map((suggestion, index) => {
-        const address = suggestion.display_name;
-        const parts = address.split(',');
-        const main = parts.slice(0, 2).join(',');
-        const detail = parts.slice(2).join(',');
+        let main, detail, address, lat, lng, placeId;
+
+        if (source === 'google') {
+            // Google Places format
+            address = suggestion.description;
+            const parts = suggestion.structured_formatting;
+            main = parts.main_text;
+            detail = parts.secondary_text || '';
+            placeId = suggestion.place_id;
+            lat = '';
+            lng = '';
+        } else {
+            // Nominatim format
+            address = suggestion.display_name;
+            const parts = address.split(',');
+            main = parts.slice(0, 2).join(',');
+            detail = parts.slice(2).join(',');
+            lat = suggestion.lat;
+            lng = suggestion.lon;
+            placeId = '';
+        }
 
         return `
-            <div class="autocomplete-suggestion-item" data-index="${index}" data-lat="${suggestion.lat}" data-lng="${suggestion.lon}" data-address="${address}">
+            <div class="autocomplete-suggestion-item"
+                 data-index="${index}"
+                 data-lat="${lat}"
+                 data-lng="${lng}"
+                 data-address="${address}"
+                 data-place-id="${placeId}"
+                 data-source="${source}">
                 <div class="suggestion-main">${main}</div>
                 ${detail ? `<div class="suggestion-detail">${detail}</div>` : ''}
             </div>
@@ -460,18 +626,60 @@ function displaySuggestions(suggestions, suggestionsId, inputId, type) {
 function selectSuggestion(item, inputId, type) {
     const input = document.getElementById(inputId);
     const address = item.dataset.address;
-    const lat = parseFloat(item.dataset.lat);
-    const lng = parseFloat(item.dataset.lng);
+    const source = item.dataset.source;
+    const placeId = item.dataset.placeId;
 
     input.value = address;
 
-    // Guardar coordenadas según el tipo
-    if (type === 'home' || type === 'work') {
-        state.locations[type].address = address;
-        state.locations[type].lat = lat;
-        state.locations[type].lng = lng;
-        updateLocationDisplay(type);
-        saveToStorage();
+    // Si es Google Places, obtener coordenadas del place_id
+    if (source === 'google' && placeId && window.google && window.google.maps) {
+        const geocoder = new google.maps.Geocoder();
+        geocoder.geocode({ placeId: placeId }, (results, status) => {
+            if (status === 'OK' && results[0]) {
+                const location = results[0].geometry.location;
+                const lat = location.lat();
+                const lng = location.lng();
+
+                // Guardar coordenadas según el tipo
+                if (type === 'home' || type === 'work') {
+                    state.locations[type].address = address;
+                    state.locations[type].lat = lat;
+                    state.locations[type].lng = lng;
+                    updateLocationDisplay(type);
+                    saveToStorage();
+                } else if (type === 'modal') {
+                    // Para el modal de tareas, guardar placeId en un campo oculto
+                    const hiddenPlaceId = document.getElementById('modalTaskPlaceId');
+                    if (hiddenPlaceId) {
+                        hiddenPlaceId.value = placeId;
+                    }
+                    // También guardar coordenadas temporalmente
+                    input.dataset.lat = lat;
+                    input.dataset.lng = lng;
+                }
+            }
+        });
+    } else {
+        // Nominatim - coordenadas ya están disponibles
+        const lat = parseFloat(item.dataset.lat);
+        const lng = parseFloat(item.dataset.lng);
+
+        // Guardar coordenadas según el tipo
+        if (type === 'home' || type === 'work') {
+            state.locations[type].address = address;
+            state.locations[type].lat = lat;
+            state.locations[type].lng = lng;
+            updateLocationDisplay(type);
+            saveToStorage();
+        } else if (type === 'modal') {
+            // Para el modal, limpiar placeId ya que no es de Google
+            const hiddenPlaceId = document.getElementById('modalTaskPlaceId');
+            if (hiddenPlaceId) {
+                hiddenPlaceId.value = '';
+            }
+            input.dataset.lat = lat;
+            input.dataset.lng = lng;
+        }
     }
 
     hideSuggestions(inputId + 'Suggestions');
@@ -856,7 +1064,8 @@ function addTask(e) {
         assignedDate: null,
         assignedTime: null,
         lat: null,
-        lng: null
+        lng: null,
+        status: 'active'  // active, pending, archived
     };
 
     // Intentar geocodificar la dirección si se proporcionó
@@ -898,6 +1107,38 @@ async function geocodeTaskAddress(task) {
         }
     } catch (error) {
         console.error('Error geocodificando tarea:', error);
+    }
+}
+
+// Cargar detalles del lugar desde Google Places
+async function loadPlaceDetailsForTask(task) {
+    if (!task.placeId || !window.GoogleMapsAPI) return;
+
+    try {
+        console.log(`[Place Details] Cargando detalles para: ${task.name}`);
+        const details = await window.GoogleMapsAPI.placeDetails(task.placeId);
+
+        task.placeDetails = details;
+
+        // Actualizar coordenadas si no las tiene
+        if (!task.lat || !task.lng) {
+            task.lat = details.lat;
+            task.lng = details.lng;
+        }
+
+        saveToStorage();
+        renderTasks(); // Actualizar visualización con nueva información
+        updateDashboard();
+
+        console.log(`[Place Details] ✅ Detalles cargados:`, {
+            name: details.name,
+            rating: details.rating,
+            isOpenNow: details.isOpenNow,
+            todayHours: details.todayHours
+        });
+
+    } catch (error) {
+        console.error('[Place Details] Error:', error);
     }
 }
 
@@ -946,6 +1187,242 @@ function unassignTask(taskId) {
     generateSuggestions();
 
     showNotification('Tarea desasignada', 'success');
+}
+
+// ===== FUNCIONES DE TRÁFICO Y RUTAS =====
+
+// Calcular tráfico para una tarea
+async function calculateTrafficForTask(taskId) {
+    const task = state.tasks.find(t => t.id === taskId);
+    if (!task || !task.lat || !task.lng) {
+        showNotification('La tarea no tiene ubicación definida', 'warning');
+        return;
+    }
+
+    const { home } = state.locations;
+    if (!home.lat || !home.lng) {
+        showNotification('Configura tu ubicación de casa primero', 'warning');
+        switchView('config');
+        return;
+    }
+
+    showNotification('Calculando ruta con tráfico...', 'info');
+
+    try {
+        // Preparar hora de salida
+        let departureTime = new Date();
+        if (task.assignedDate && task.assignedTime) {
+            const [day, month, year] = task.assignedDate.split('-');
+            const [hour, minute] = task.assignedTime.split(':');
+            departureTime = new Date(year, month - 1, day, hour, minute);
+        }
+
+        // Llamar a la API de tráfico (backend)
+        const trafficData = await window.GoogleMapsAPI.trafficMatrix(
+            [{ lat: home.lat, lng: home.lng }],
+            [{ lat: task.lat, lng: task.lng }],
+            departureTime.toISOString(),
+            'driving',
+            'best_guess'
+        );
+
+        if (trafficData && trafficData.rows && trafficData.rows[0].elements[0].status === 'OK') {
+            const element = trafficData.rows[0].elements[0];
+            const durationText = element.duration.text;
+            const durationInTrafficText = element.duration_in_traffic?.text || durationText;
+            const distance = element.distance.text;
+
+            // Guardar información de tráfico en la tarea
+            task.trafficInfo = {
+                distance: distance,
+                durationNormal: durationText,
+                durationWithTraffic: durationInTrafficText,
+                lastUpdated: new Date().toISOString()
+            };
+
+            saveToStorage();
+            renderTasks();
+
+            // Mostrar resultado
+            const trafficDiff = element.duration_in_traffic ?
+                element.duration_in_traffic.value - element.duration.value : 0;
+            const extraMinutes = Math.round(trafficDiff / 60);
+
+            let message = `🚗 Ruta a ${task.name}:\n\n`;
+            message += `📏 Distancia: ${distance}\n`;
+            message += `⏱️ Tiempo sin tráfico: ${durationText}\n`;
+            message += `🚦 Tiempo CON tráfico: ${durationInTrafficText}`;
+
+            if (extraMinutes > 0) {
+                message += `\n\n⚠️ El tráfico añade ${extraMinutes} minutos`;
+            } else if (extraMinutes === 0) {
+                message += `\n\n✅ No hay retrasos por tráfico`;
+            }
+
+            alert(message);
+
+        } else {
+            throw new Error('No se pudo calcular la ruta');
+        }
+
+    } catch (error) {
+        console.error('[Traffic] Error:', error);
+        showNotification('Error al calcular tráfico: ' + error.message, 'error');
+    }
+}
+
+// Buscar lugares en la ruta entre dos tareas
+async function findPlacesInRoute(task1Id, task2Id, placeType = 'supermercado') {
+    const task1 = state.tasks.find(t => t.id === task1Id);
+    const task2 = state.tasks.find(t => t.id === task2Id);
+
+    if (!task1 || !task2 || !task1.lat || !task2.lat) {
+        showNotification('Las tareas necesitan ubicación', 'warning');
+        return;
+    }
+
+    showNotification(`Buscando ${placeType} en la ruta...`, 'info');
+
+    try {
+        // 1. Calcular ruta
+        const routeData = await window.GoogleMapsAPI.computeRoutes(
+            { lat: task1.lat, lng: task1.lng },
+            { lat: task2.lat, lng: task2.lng },
+            'DRIVE',
+            false
+        );
+
+        if (!routeData.routes || routeData.routes.length === 0) {
+            throw new Error('No se encontró ruta');
+        }
+
+        const route = routeData.routes[0];
+        const polyline = route.polyline?.encodedPolyline;
+
+        if (!polyline) {
+            throw new Error('No se pudo obtener la ruta');
+        }
+
+        // 2. Buscar lugares a lo largo de la ruta
+        const placesData = await window.GoogleMapsAPI.placesAlongRoute(
+            polyline,
+            placeType,
+            { lat: task1.lat, lng: task1.lng },
+            10
+        );
+
+        if (!placesData.places || placesData.places.length === 0) {
+            showNotification(`No se encontraron ${placeType} en la ruta`, 'info');
+            return [];
+        }
+
+        // 3. Mostrar resultados
+        const places = placesData.places.map(p => window.GoogleMapsAPI.parsePlace(p));
+
+        let message = `📍 Encontrados ${places.length} ${placeType} en tu ruta:\n\n`;
+        places.slice(0, 5).forEach((place, i) => {
+            message += `${i + 1}. ${place.name}\n`;
+            if (place.rating) message += `   ⭐ ${place.rating}\n`;
+        });
+
+        alert(message);
+        return places;
+
+    } catch (error) {
+        console.error('[Places Along Route] Error:', error);
+        showNotification('Error buscando lugares: ' + error.message, 'error');
+        return [];
+    }
+}
+
+// Optimizar orden de tareas del día con tráfico
+async function optimizeDayRoute(dateStr) {
+    const dayTasks = state.tasks.filter(t =>
+        t.assignedDate === dateStr &&
+        t.status === 'active' &&
+        t.lat &&
+        t.lng
+    );
+
+    if (dayTasks.length < 2) {
+        showNotification('Necesitas al menos 2 tareas con ubicación', 'info');
+        return;
+    }
+
+    showNotification('Optimizando ruta del día...', 'info');
+
+    const { home } = state.locations;
+    if (!home.lat || !home.lng) {
+        showNotification('Configura tu ubicación de casa primero', 'warning');
+        return;
+    }
+
+    try {
+        // Calcular matriz de distancias con tráfico
+        const origins = [{ lat: home.lat, lng: home.lng }, ...dayTasks.map(t => ({ lat: t.lat, lng: t.lng }))];
+        const destinations = dayTasks.map(t => ({ lat: t.lat, lng: t.lng }));
+
+        const matrixData = await window.GoogleMapsAPI.trafficMatrix(
+            origins,
+            destinations,
+            new Date().toISOString(),
+            'driving',
+            'best_guess'
+        );
+
+        // Algoritmo simple: vecino más cercano
+        const visited = new Set();
+        const optimizedOrder = [];
+        let currentPos = 0; // Empezar desde casa
+
+        while (optimizedOrder.length < dayTasks.length) {
+            let minDuration = Infinity;
+            let nextTaskIndex = -1;
+
+            dayTasks.forEach((task, index) => {
+                if (visited.has(index)) return;
+
+                const duration = matrixData.rows[currentPos].elements[index].duration_in_traffic?.value ||
+                               matrixData.rows[currentPos].elements[index].duration.value;
+
+                if (duration < minDuration) {
+                    minDuration = duration;
+                    nextTaskIndex = index;
+                }
+            });
+
+            if (nextTaskIndex === -1) break;
+
+            visited.add(nextTaskIndex);
+            optimizedOrder.push(dayTasks[nextTaskIndex]);
+            currentPos = nextTaskIndex + 1; // +1 porque origins incluye home
+        }
+
+        // Reasignar horarios
+        let currentTime = new Date(dateStr);
+        currentTime.setHours(9, 0, 0, 0); // Empezar a las 9 AM
+
+        optimizedOrder.forEach(task => {
+            task.assignedTime = `${String(currentTime.getHours()).padStart(2, '0')}:${String(currentTime.getMinutes()).padStart(2, '0')}`;
+            currentTime.setMinutes(currentTime.getMinutes() + (task.duration * 60) + 15); // +15 min de viaje
+        });
+
+        saveToStorage();
+        renderCalendar();
+        renderTasks();
+
+        showNotification(`✅ Ruta optimizada: ${optimizedOrder.length} tareas reorganizadas`, 'success');
+
+    } catch (error) {
+        console.error('[Optimize Route] Error:', error);
+        showNotification('Error optimizando ruta: ' + error.message, 'error');
+    }
+}
+
+// Optimizar ruta de hoy
+function optimizeTodayRoute() {
+    const today = formatDateToString(new Date());
+    optimizeDayRoute(today);
 }
 
 // Asignar múltiples tareas al mismo día
@@ -1309,26 +1786,47 @@ function renderSuggestions(suggestions) {
 
 // Renderizar tareas
 function renderTasks() {
-    const unassigned = state.tasks.filter(t => !t.assignedDate);
+    // Filtrar tareas activas y pendientes (no archivadas)
+    const activeTasks = state.tasks.filter(t => t.status !== 'archived');
+    const archivedTasks = state.tasks.filter(t => t.status === 'archived');
+
+    const unassigned = activeTasks.filter(t => !t.assignedDate);
     const unassignedContainer = document.getElementById('unassignedTasks');
 
     if (unassigned.length === 0) {
-        unassignedContainer.innerHTML = '<div class="empty-state">Todas las tareas están asignadas</div>';
+        unassignedContainer.innerHTML = '<div class="empty-state">Todas las tareas activas están asignadas</div>';
     } else {
         unassignedContainer.innerHTML = unassigned.map(task => createTaskCard(task)).join('');
     }
 
     const allTasksContainer = document.getElementById('allTasks');
 
-    if (state.tasks.length === 0) {
-        allTasksContainer.innerHTML = '<div class="empty-state">No hay tareas creadas</div>';
+    if (activeTasks.length === 0) {
+        allTasksContainer.innerHTML = '<div class="empty-state">No hay tareas activas</div>';
     } else {
-        const sortedTasks = [...state.tasks].sort((a, b) => {
+        const sortedTasks = [...activeTasks].sort((a, b) => {
             const priorityOrder = { urgente: 0, alta: 1, media: 2, baja: 3 };
             return priorityOrder[a.priority] - priorityOrder[b.priority];
         });
 
         allTasksContainer.innerHTML = sortedTasks.map(task => createTaskCard(task, true)).join('');
+    }
+
+    // Mostrar contador de tareas archivadas
+    const archivedInfo = document.getElementById('archivedInfo');
+    if (archivedInfo) {
+        if (archivedTasks.length > 0) {
+            archivedInfo.innerHTML = `
+                <div class="archived-banner" onclick="toggleArchivedTasks()">
+                    📦 Tienes ${archivedTasks.length} tarea(s) archivada(s). <span class="link">Click para ver</span>
+                </div>
+                <div id="archivedTasksList" style="display: none; margin-top: 12px;">
+                    ${archivedTasks.map(task => createTaskCard(task, true)).join('')}
+                </div>
+            `;
+        } else {
+            archivedInfo.innerHTML = '';
+        }
     }
 }
 
@@ -1348,10 +1846,31 @@ function createTaskCard(task, showAll = false) {
 
     const distanceText = getTaskDistanceInfo(task);
 
+    // Información de Google Places
+    const placeInfoText = getPlaceInfoHTML(task);
+
+    // Información de tráfico
+    const trafficInfoText = getTrafficInfoHTML(task);
+
+    // Estado de la tarea
+    const statusIcons = {
+        active: '✅',
+        pending: '⏸️',
+        archived: '📦'
+    };
+    const statusLabels = {
+        active: 'Activa',
+        pending: 'Pendiente',
+        archived: 'Archivada'
+    };
+    const statusIcon = statusIcons[task.status] || '✅';
+    const statusLabel = statusLabels[task.status] || 'Activa';
+    const statusText = `<div>${statusIcon} Estado: ${statusLabel}</div>`;
+
     const priorityClass = `priority-${task.priority}`;
 
     return `
-        <div class="task-item ${priorityClass}">
+        <div class="task-item ${priorityClass} ${task.status === 'archived' ? 'task-archived' : ''}" onclick="openTaskModal(${task.id})">
             <div class="task-header">
                 <div class="task-title">${task.name}</div>
                 <div class="task-priority ${priorityClass}">${task.priority}</div>
@@ -1360,23 +1879,101 @@ function createTaskCard(task, showAll = false) {
                 <div>⏱️ Duración: ${task.duration} hora(s)</div>
                 <div>📍 Ubicación: ${task.location}</div>
                 ${addressText}
+                ${placeInfoText}
+                ${trafficInfoText}
                 ${distanceText}
                 ${windowText}
                 ${deadlineText}
                 ${assignedText}
+                ${statusText}
             </div>
-            <div class="task-actions">
-                ${!task.assignedDate ? `
+            <div class="task-actions" onclick="event.stopPropagation()">
+                ${!task.assignedDate && task.status !== 'archived' ? `
                     <button class="btn btn-success" onclick="suggestDayForTask(${task.id})">💡 Sugerir día</button>
                     <button class="btn btn-primary" onclick="assignTaskPrompt(${task.id})">📅 Asignar a día</button>
                 ` : ''}
-                ${task.assignedDate ? `
+                ${task.assignedDate && task.status !== 'archived' ? `
                     <button class="btn btn-secondary" onclick="unassignTask(${task.id})">🔄 Desasignar</button>
                 ` : ''}
-                <button class="btn btn-danger" onclick="deleteTask(${task.id})">🗑️ Eliminar</button>
+                ${task.lat && task.lng && task.assignedDate ? `
+                    <button class="btn btn-info" onclick="calculateTrafficForTask(${task.id})">🚗 Ver tráfico</button>
+                ` : ''}
+                <button class="btn btn-primary" onclick="openTaskModal(${task.id})">✏️ Editar</button>
             </div>
         </div>
     `;
+}
+
+// Generar HTML con información del lugar de Google Places
+function getPlaceInfoHTML(task) {
+    if (!task.placeDetails) return '';
+
+    const details = task.placeDetails;
+    let html = '<div class="place-info-section" style="border-left: 3px solid var(--brand); padding-left: 8px; margin: 8px 0;">';
+
+    // Estado: Abierto/Cerrado
+    if (details.isOpenNow !== null && details.isOpenNow !== undefined) {
+        const openStatus = details.isOpenNow ? '🟢 Abierto ahora' : '🔴 Cerrado';
+        const statusColor = details.isOpenNow ? '#22c55e' : '#ef4444';
+        html += `<div style="color: ${statusColor}; font-weight: bold;">${openStatus}</div>`;
+    }
+
+    // Horario de hoy
+    if (details.todayHours) {
+        const open = formatTime24(details.todayHours.open);
+        const close = formatTime24(details.todayHours.close);
+        html += `<div>🕐 Horario hoy: ${open} - ${close}</div>`;
+    }
+
+    // Calificación
+    if (details.rating) {
+        const stars = '⭐'.repeat(Math.round(details.rating));
+        html += `<div>${stars} ${details.rating} (${details.ratingCount} reseñas)</div>`;
+    }
+
+    // Nivel de precio
+    if (details.priceLevel !== null && details.priceLevel !== undefined) {
+        const price = '$'.repeat(details.priceLevel + 1);
+        html += `<div>💰 Precio: ${price}</div>`;
+    }
+
+    // Teléfono
+    if (details.phone) {
+        html += `<div>📞 ${details.phone}</div>`;
+    }
+
+    html += '</div>';
+    return html;
+}
+
+// Formatear hora de 4 dígitos (ej: "1430") a "14:30"
+function formatTime24(time) {
+    if (!time) return '';
+    const str = String(time).padStart(4, '0');
+    return `${str.substring(0, 2)}:${str.substring(2, 4)}`;
+}
+
+// Generar HTML con información de tráfico
+function getTrafficInfoHTML(task) {
+    if (!task.trafficInfo) return '';
+
+    const traffic = task.trafficInfo;
+    const isRecent = (new Date() - new Date(traffic.lastUpdated)) < 30 * 60 * 1000; // 30 minutos
+
+    let html = '<div class="traffic-info-section" style="border-left: 3px solid #3b82f6; padding-left: 8px; margin: 8px 0;">';
+
+    html += `<div style="font-weight: bold; color: #3b82f6;">🚗 Información de Tráfico ${isRecent ? '' : '(⚠️ desactualizada)'}</div>`;
+    html += `<div>📏 Distancia: ${traffic.distance}</div>`;
+    html += `<div>⏱️ Sin tráfico: ${traffic.durationNormal}</div>`;
+
+    if (traffic.durationWithTraffic !== traffic.durationNormal) {
+        html += `<div style="color: #f59e0b; font-weight: bold;">🚦 CON tráfico: ${traffic.durationWithTraffic}</div>`;
+    } else {
+        html += `<div style="color: #22c55e;">✅ Sin demoras por tráfico</div>`;
+    }
+
+    html += '</div>';
+    return html;
 }
 
 // Obtener información de distancia de una tarea
@@ -1539,51 +2136,195 @@ function getWeekDays(startDate) {
     return days;
 }
 
-// Renderizar calendario
+// Renderizar calendario con FullCalendar
 function renderCalendar() {
-    const weekDays = getWeekDays(state.currentWeekStart);
-    const calendar = document.getElementById('calendar');
-    const weekDisplay = document.getElementById('currentWeek');
+    // Si FullCalendar no está disponible aún, esperar
+    if (!window.FullCalendar) {
+        console.warn('FullCalendar aún no está cargado, esperando...');
+        setTimeout(renderCalendar, 500);
+        return;
+    }
 
-    const startStr = formatDateShort(weekDays[0]);
-    const endStr = formatDateShort(weekDays[6]);
-    weekDisplay.textContent = `${startStr} - ${endStr}`;
+    // Si ya existe una instancia, solo actualizarla
+    if (fullCalendar) {
+        updateFullCalendarEvents();
+        return;
+    }
 
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    // Inicializar FullCalendar
+    const calendarEl = document.getElementById('fullcalendar');
+    if (!calendarEl) {
+        console.error('Elemento #fullcalendar no encontrado');
+        return;
+    }
 
-    calendar.innerHTML = weekDays.map(day => {
-        const dateStr = formatDateToString(day);
-        const dayTasks = state.tasks.filter(t => t.assignedDate === dateStr);
-        const isToday = day.getTime() === today.getTime();
+    try {
+        fullCalendar = new FullCalendar.Calendar(calendarEl, {
+            initialView: 'timeGridWeek',
+            locale: 'es',
+            headerToolbar: {
+                left: 'prev,next today',
+                center: 'title',
+                right: 'dayGridMonth,timeGridWeek,timeGridDay'
+            },
+            slotMinTime: '06:00:00',
+            slotMaxTime: '23:00:00',
+            allDaySlot: true,
+            nowIndicator: true,
+            navLinks: true,
+            selectable: true,
+            selectMirror: true,
+            editable: true,
+            dayMaxEvents: true,
+            height: 'auto',
 
-        const dayNum = String(day.getDate()).padStart(2, '0');
-        const monthNum = String(day.getMonth() + 1).padStart(2, '0');
+            // Cuando se selecciona un rango de tiempo
+            select: function(info) {
+                const dateStr = formatDateToString(info.start);
+                const timeStr = `${String(info.start.getHours()).padStart(2, '0')}:${String(info.start.getMinutes()).padStart(2, '0')}`;
 
-        return `
-            <div class="calendar-day">
-                <div class="day-header ${isToday ? 'today' : ''}">
-                    ${getDayName(day.getDay())}<br>
-                    ${dayNum}-${monthNum}
-                </div>
-                <div class="day-tasks">
-                    <div class="task-block work-block">
-                        💼 Trabajo<br>
-                        ${state.workSchedule.start} - ${state.workSchedule.end}
-                    </div>
-                    ${dayTasks.map(task => `
-                        <div class="task-block priority-${task.priority}"
-                             title="${task.name}\n${task.location}\n${task.duration}h"
-                             onclick="unassignTask(${task.id})">
-                            ${task.name}<br>
-                            ${task.assignedTime} (${task.duration}h)
-                        </div>
-                    `).join('')}
-                </div>
-            </div>
-        `;
-    }).join('');
+                openTaskModal(null, {
+                    date: dateStr,
+                    time: info.allDay ? null : timeStr
+                });
+
+                fullCalendar.unselect();
+            },
+
+            // Cuando se hace click en un evento
+            eventClick: function(info) {
+                if (info.event.id.startsWith('task-')) {
+                    const taskId = info.event.extendedProps.taskId;
+                    openTaskModal(taskId);
+                } else if (info.event.id.startsWith('work-')) {
+                    showNotification('Bloque de trabajo - No editable', 'info');
+                }
+            },
+
+            // Cuando se mueve un evento
+            eventDrop: function(info) {
+                updateTaskDateTime(info.event, info.event.start, info.event.end);
+            },
+
+            // Cuando se redimensiona un evento
+            eventResize: function(info) {
+                updateTaskDateTime(info.event, info.event.start, info.event.end);
+            },
+
+            events: getFullCalendarEvents()
+        });
+
+        fullCalendar.render();
+        console.log('FullCalendar inicializado correctamente');
+    } catch (error) {
+        console.error('Error al inicializar FullCalendar:', error);
+        showNotification('Error al cargar el calendario', 'error');
+    }
 }
+
+// Convertir tareas a eventos de FullCalendar
+function getFullCalendarEvents() {
+    const events = [];
+
+    // Agregar bloques de trabajo (todos los días laborables)
+    const today = new Date();
+    for (let i = -30; i <= 30; i++) {
+        const date = new Date(today);
+        date.setDate(today.getDate() + i);
+
+        // Solo días laborables (Lun-Vie)
+        if (date.getDay() >= 1 && date.getDay() <= 5) {
+            const dateStr = formatDateToString(date);
+            const [startHour, startMin] = state.workSchedule.start.split(':');
+            const [endHour, endMin] = state.workSchedule.end.split(':');
+
+            const startDate = new Date(date);
+            startDate.setHours(parseInt(startHour), parseInt(startMin), 0);
+
+            const endDate = new Date(date);
+            endDate.setHours(parseInt(endHour), parseInt(endMin), 0);
+
+            events.push({
+                id: `work-${dateStr}`,
+                title: '💼 Trabajo',
+                start: startDate,
+                end: endDate,
+                classNames: ['work-block'],
+                editable: false,
+                backgroundColor: '#334155',
+                borderColor: '#475569'
+            });
+        }
+    }
+
+    // Agregar tareas asignadas (solo activas y pendientes, no archivadas)
+    state.tasks.forEach(task => {
+        // Filtrar tareas archivadas
+        if (task.status === 'archived') return;
+
+        if (task.assignedDate && task.assignedTime) {
+            const [day, month, year] = task.assignedDate.split('-');
+            const [hour, minute] = task.assignedTime.split(':');
+
+            const startDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day),
+                                      parseInt(hour), parseInt(minute));
+            const endDate = new Date(startDate);
+            endDate.setHours(startDate.getHours() + Math.floor(task.duration));
+            endDate.setMinutes(startDate.getMinutes() + ((task.duration % 1) * 60));
+
+            // Agregar indicador de estado si es pendiente
+            const statusIcon = task.status === 'pending' ? '⏸️ ' : '';
+
+            events.push({
+                id: `task-${task.id}`,
+                title: `${statusIcon}${task.name}`,
+                start: startDate,
+                end: endDate,
+                classNames: [`priority-${task.priority}`, task.status === 'pending' ? 'task-pending' : ''],
+                extendedProps: {
+                    taskId: task.id,
+                    location: task.location,
+                    priority: task.priority,
+                    status: task.status
+                }
+            });
+        }
+    });
+
+    return events;
+}
+
+// Actualizar eventos del calendario
+function updateFullCalendarEvents() {
+    if (!fullCalendar) return;
+
+    const events = getFullCalendarEvents();
+    fullCalendar.removeAllEvents();
+    fullCalendar.addEventSource(events);
+}
+
+// Actualizar fecha/hora de una tarea cuando se mueve en el calendario
+function updateTaskDateTime(event, newStart, newEnd) {
+    if (!event.id.startsWith('task-')) return;
+
+    const taskId = event.extendedProps.taskId;
+    const task = state.tasks.find(t => t.id === taskId);
+
+    if (!task) return;
+
+    // Actualizar fecha y hora
+    task.assignedDate = formatDateToString(newStart);
+    task.assignedTime = `${String(newStart.getHours()).padStart(2, '0')}:${String(newStart.getMinutes()).padStart(2, '0')}`;
+
+    // Calcular nueva duración basada en el rango
+    const durationMs = newEnd - newStart;
+    task.duration = durationMs / (1000 * 60 * 60); // Convertir a horas
+
+    saveToStorage();
+    showNotification(`Tarea "${task.name}" movida a ${task.assignedDate} ${task.assignedTime}`, 'success');
+}
+
+// Funciones showEventDetails y showAddTaskModal removidas - ahora se usa openTaskModal()
 
 // Utilidades de tiempo
 function parseTime(timeStr) {
@@ -1599,8 +2340,13 @@ function formatMinutesToTime(minutes) {
 
 // Formato DD-MM-YYYY para mostrar
 function formatDate(date) {
+    if (!date) return '';
     if (typeof date === 'string') {
         date = new Date(date);
+    }
+    if (isNaN(date.getTime())) {
+        console.error('Invalid date:', date);
+        return 'Fecha inválida';
     }
     const day = String(date.getDate()).padStart(2, '0');
     const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -1610,8 +2356,13 @@ function formatDate(date) {
 
 // Formato DD-MM-YYYY abreviado con día de semana
 function formatDateShort(date) {
+    if (!date) return '';
     if (typeof date === 'string') {
         date = new Date(date);
+    }
+    if (isNaN(date.getTime())) {
+        console.error('Invalid date:', date);
+        return 'Fecha inválida';
     }
     const days = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
     const day = String(date.getDate()).padStart(2, '0');
@@ -1639,7 +2390,64 @@ function formatDateToString(date) {
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const day = String(date.getDate()).padStart(2, '0');
+    return `${day}-${month}-${year}`;
+}
+
+// Convertir DD-MM-YYYY a YYYY-MM-DD para input type="date"
+function convertToDateInputFormat(dateStr) {
+    if (!dateStr) return '';
+    const [day, month, year] = dateStr.split('-');
     return `${year}-${month}-${day}`;
+}
+
+// Convertir YYYY-MM-DD a DD-MM-YYYY
+function convertFromDateInputFormat(dateStr) {
+    if (!dateStr) return '';
+    const [year, month, day] = dateStr.split('-');
+    return `${day}-${month}-${year}`;
+}
+
+// Normalizar tiempo a formato HH:MM (24 horas)
+function normalizeTimeFormat(timeStr) {
+    if (!timeStr) return '';
+
+    // Eliminar espacios
+    timeStr = timeStr.trim();
+
+    // Si ya está en formato correcto HH:MM
+    if (/^\d{2}:\d{2}$/.test(timeStr)) {
+        return timeStr;
+    }
+
+    // Si tiene formato H:MM (sin cero inicial)
+    if (/^\d{1}:\d{2}$/.test(timeStr)) {
+        const [hour, minute] = timeStr.split(':');
+        return `${hour.padStart(2, '0')}:${minute}`;
+    }
+
+    // Si tiene AM/PM
+    const match = timeStr.match(/(\d{1,2}):(\d{2})\s*(am|pm)/i);
+    if (match) {
+        let hour = parseInt(match[1]);
+        const minute = match[2];
+        const period = match[3].toLowerCase();
+
+        if (period === 'pm' && hour !== 12) {
+            hour += 12;
+        } else if (period === 'am' && hour === 12) {
+            hour = 0;
+        }
+
+        return `${String(hour).padStart(2, '0')}:${minute}`;
+    }
+
+    // Intentar parsear como número (ej: 1230 -> 12:30)
+    const numMatch = timeStr.match(/^(\d{1,2})(\d{2})$/);
+    if (numMatch) {
+        return `${numMatch[1].padStart(2, '0')}:${numMatch[2]}`;
+    }
+
+    return timeStr;
 }
 
 // Convertir de YYYY-MM-DD a DD-MM-YYYY para input
@@ -2260,4 +3068,252 @@ function assignTaskToLocation(taskId, locationName) {
     showNotification(`Tarea "${task.name}" actualizada con ubicación: ${locationName}`, 'success');
     updateDashboard();
     renderTasks();
+}
+
+// ===== MODAL FLOTANTE PARA TAREAS =====
+
+function openTaskModal(taskId = null, prefilledData = null) {
+    const modal = document.getElementById('taskModal');
+    const form = document.getElementById('taskModalForm');
+    const title = document.getElementById('taskModalTitle');
+    const btnDelete = document.getElementById('btnDeleteTask');
+    const btnArchive = document.getElementById('btnArchiveTask');
+
+    // Resetear formulario
+    form.reset();
+    document.getElementById('modalTaskId').value = '';
+    document.getElementById('modalTaskPriority').value = 'media';
+    document.getElementById('modalTaskStatus').value = 'active';
+    document.getElementById('modalTaskDuration').value = '1';
+
+    if (taskId) {
+        // Modo edición
+        const task = state.tasks.find(t => t.id === taskId);
+        if (!task) {
+            showNotification('Tarea no encontrada', 'error');
+            return;
+        }
+
+        title.textContent = '✏️ Editar Tarea';
+        document.getElementById('modalTaskId').value = task.id;
+        document.getElementById('modalTaskName').value = task.name;
+        document.getElementById('modalTaskDuration').value = task.duration;
+        document.getElementById('modalTaskLocation').value = task.location;
+        document.getElementById('modalTaskAddress').value = task.address || '';
+        document.getElementById('modalTaskPriority').value = task.priority;
+        document.getElementById('modalTaskStatus').value = task.status || 'active';
+
+        if (task.assignedDate) {
+            document.getElementById('modalTaskDate').value = convertToDateInputFormat(task.assignedDate);
+        }
+        if (task.assignedTime) {
+            document.getElementById('modalTaskTime').value = normalizeTimeFormat(task.assignedTime);
+        }
+        if (task.deadline) {
+            document.getElementById('modalTaskDeadline').value = convertToDateInputFormat(task.deadline);
+        }
+
+        btnDelete.style.display = 'block';
+        btnArchive.style.display = 'block';
+    } else {
+        // Modo creación
+        title.textContent = '➕ Nueva Tarea';
+        btnDelete.style.display = 'none';
+        btnArchive.style.display = 'none';
+
+        // Pre-rellenar si hay datos
+        if (prefilledData) {
+            if (prefilledData.date) {
+                document.getElementById('modalTaskDate').value = convertToDateInputFormat(prefilledData.date);
+            }
+            if (prefilledData.time) {
+                document.getElementById('modalTaskTime').value = normalizeTimeFormat(prefilledData.time);
+            }
+        }
+    }
+
+    modal.style.display = 'flex';
+    document.getElementById('modalTaskName').focus();
+}
+
+function closeTaskModal() {
+    const modal = document.getElementById('taskModal');
+    modal.style.display = 'none';
+}
+
+function saveTaskFromModal(e) {
+    e.preventDefault();
+
+    const taskId = document.getElementById('modalTaskId').value;
+    const name = document.getElementById('modalTaskName').value;
+    const duration = parseFloat(document.getElementById('modalTaskDuration').value);
+    const location = document.getElementById('modalTaskLocation').value;
+    const address = document.getElementById('modalTaskAddress').value || null;
+    const placeId = document.getElementById('modalTaskPlaceId').value || null;
+    const priority = document.getElementById('modalTaskPriority').value;
+    const status = document.getElementById('modalTaskStatus').value;
+    const dateInput = document.getElementById('modalTaskDate').value;
+    const timeInput = document.getElementById('modalTaskTime').value;
+    const deadlineInput = document.getElementById('modalTaskDeadline').value;
+
+    // Obtener coordenadas del input si están disponibles
+    const addressInput = document.getElementById('modalTaskAddress');
+    const lat = addressInput.dataset.lat ? parseFloat(addressInput.dataset.lat) : null;
+    const lng = addressInput.dataset.lng ? parseFloat(addressInput.dataset.lng) : null;
+
+    // Validar y convertir fecha si se proporcionó (viene en formato YYYY-MM-DD del input type="date")
+    let assignedDate = null;
+    if (dateInput) {
+        assignedDate = convertFromDateInputFormat(dateInput);
+    }
+
+    // Validar y convertir deadline si se proporcionó
+    let deadline = null;
+    if (deadlineInput) {
+        deadline = convertFromDateInputFormat(deadlineInput);
+    }
+
+    if (taskId) {
+        // Editar tarea existente
+        const task = state.tasks.find(t => t.id === parseInt(taskId));
+        if (task) {
+            task.name = name;
+            task.duration = duration;
+            task.location = location;
+            task.address = address;
+            task.priority = priority;
+            task.status = status;
+            task.assignedDate = assignedDate;
+            task.assignedTime = normalizeTimeFormat(timeInput) || null;
+            task.deadline = deadline;
+            task.placeId = placeId;
+
+            // Actualizar coordenadas si están disponibles
+            if (lat && lng) {
+                task.lat = lat;
+                task.lng = lng;
+            }
+
+            // Si cambió la dirección, re-geocodificar
+            if (address && address !== task.address && !placeId) {
+                geocodeTaskAddress(task);
+            }
+
+            // Si tiene placeId, cargar detalles del lugar
+            if (placeId && window.GoogleMapsAPI) {
+                loadPlaceDetailsForTask(task);
+            }
+
+            showNotification(`Tarea "${name}" actualizada`, 'success');
+        }
+    } else {
+        // Crear nueva tarea
+        const task = {
+            id: Date.now(),
+            name,
+            duration,
+            location,
+            address,
+            priority,
+            deadline,
+            windowStart: null,
+            windowEnd: null,
+            assignedDate,
+            assignedTime: normalizeTimeFormat(timeInput) || null,
+            lat: lat,
+            lng: lng,
+            placeId: placeId,
+            status,
+            placeDetails: null // Se llenará si hay placeId
+        };
+
+        // Si tiene placeId de Google, cargar detalles del lugar
+        if (placeId && window.GoogleMapsAPI) {
+            loadPlaceDetailsForTask(task);
+        } else if (address && !lat && !lng) {
+            // Geocodificar si se proporcionó dirección pero no hay coordenadas
+            geocodeTaskAddress(task);
+        }
+
+        state.tasks.push(task);
+        showNotification(`Tarea "${name}" creada`, 'success');
+    }
+
+    saveToStorage();
+    renderCalendar();
+    renderTasks();
+    generateSuggestions();
+    updateDashboard();
+    closeTaskModal();
+}
+
+function deleteTaskFromModal() {
+    const taskId = document.getElementById('modalTaskId').value;
+    if (!taskId) return;
+
+    const task = state.tasks.find(t => t.id === parseInt(taskId));
+    if (!task) return;
+
+    const confirmed = confirm(`¿Estás seguro de eliminar la tarea "${task.name}"?`);
+    if (!confirmed) return;
+
+    state.tasks = state.tasks.filter(t => t.id !== parseInt(taskId));
+    saveToStorage();
+    renderCalendar();
+    renderTasks();
+    generateSuggestions();
+    updateDashboard();
+    closeTaskModal();
+
+    showNotification(`Tarea "${task.name}" eliminada`, 'success');
+}
+
+function archiveTaskFromModal() {
+    const taskId = document.getElementById('modalTaskId').value;
+    if (!taskId) return;
+
+    const task = state.tasks.find(t => t.id === parseInt(taskId));
+    if (!task) return;
+
+    task.status = 'archived';
+
+    // Si estaba asignada, guardar la fecha donde se archivó
+    if (!task.assignedDate) {
+        task.assignedDate = formatDateToString(new Date());
+    }
+
+    saveToStorage();
+    renderCalendar();
+    renderTasks();
+    generateSuggestions();
+    updateDashboard();
+    closeTaskModal();
+
+    showNotification(`Tarea "${task.name}" archivada`, 'success');
+}
+
+// Cerrar modal con ESC
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+        const modal = document.getElementById('taskModal');
+        if (modal && modal.style.display === 'flex') {
+            closeTaskModal();
+        }
+    }
+});
+
+// Cerrar modal al hacer click fuera
+document.addEventListener('click', (e) => {
+    const modal = document.getElementById('taskModal');
+    if (e.target === modal) {
+        closeTaskModal();
+    }
+});
+
+// Toggle tareas archivadas
+function toggleArchivedTasks() {
+    const list = document.getElementById('archivedTasksList');
+    if (list) {
+        list.style.display = list.style.display === 'none' ? 'block' : 'none';
+    }
 }
