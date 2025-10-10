@@ -427,7 +427,9 @@ function setupEventListeners() {
     // Autocompletado de direcciones
     setupAddressAutocomplete('homeAddress', 'homeAddressSuggestions', 'home');
     setupAddressAutocomplete('workAddress', 'workAddressSuggestions', 'work');
+    setupAddressAutocomplete('taskLocation', 'taskLocationSuggestions', 'taskLocation');
     setupAddressAutocomplete('taskAddress', 'taskAddressSuggestions', 'task');
+    setupAddressAutocomplete('modalTaskLocation', 'modalTaskLocationSuggestions', 'modalLocation');
     setupAddressAutocomplete('modalTaskAddress', 'modalTaskAddressSuggestions', 'modal');
 
     // Transporte
@@ -518,7 +520,7 @@ async function searchAddresses(query, suggestionsId, inputId, type) {
         } else {
             // Fallback a Nominatim
             const response = await fetch(
-                `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=5&addressdetails=1`,
+                `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=4&addressdetails=1`,
                 {
                     headers: {
                         'User-Agent': 'CalendarioInteligente/1.0'
@@ -529,7 +531,7 @@ async function searchAddresses(query, suggestionsId, inputId, type) {
             const data = await response.json();
 
             if (data && data.length > 0) {
-                displaySuggestions(data, suggestionsId, inputId, type, 'nominatim');
+                displaySuggestions(data.slice(0, 4), suggestionsId, inputId, type, 'nominatim');
             } else {
                 suggestionsContainer.innerHTML = '<div class="autocomplete-no-results">No se encontraron direcciones</div>';
             }
@@ -549,22 +551,68 @@ async function searchWithGooglePlaces(query, suggestionsId, inputId, type) {
         return;
     }
 
-    const service = new google.maps.places.AutocompleteService();
-
-    service.getPlacePredictions(
-        {
+    try {
+        // Usar la nueva API de Places (AutocompleteSuggestion)
+        // Nota: No usar includedPrimaryTypes ya que limita a máximo 5 tipos
+        const { suggestions } = await google.maps.places.AutocompleteSuggestion.fetchAutocompleteSuggestions({
             input: query,
             language: 'es',
-            types: ['address', 'establishment']
-        },
-        (predictions, status) => {
-            if (status === google.maps.places.PlacesServiceStatus.OK && predictions) {
-                displaySuggestions(predictions, suggestionsId, inputId, type, 'google');
-            } else {
-                suggestionsContainer.innerHTML = '<div class="autocomplete-no-results">No se encontraron direcciones</div>';
-            }
+            region: 'CL', // Código de país para resultados localizados
+        });
+
+        if (suggestions && suggestions.length > 0) {
+            // Convertir el formato de la nueva API al formato esperado
+            const formattedSuggestions = suggestions.map(s => {
+                // La nueva API tiene una estructura diferente
+                let mainText = '';
+                let secondaryText = '';
+                let description = '';
+                let placeId = '';
+
+                // Verificar si es placePrediction (lugar) o querySuggestion (búsqueda)
+                if (s.placePrediction) {
+                    const prediction = s.placePrediction;
+                    description = prediction.text?.text || '';
+
+                    // Intentar obtener el texto estructurado
+                    if (prediction.structuredFormat) {
+                        mainText = prediction.structuredFormat.mainText?.text || prediction.text?.text || '';
+                        secondaryText = prediction.structuredFormat.secondaryText?.text || '';
+                    } else {
+                        // Si no hay structuredFormat, usar el texto completo
+                        mainText = prediction.text?.text || '';
+                    }
+
+                    placeId = prediction.placeId || '';
+                } else if (s.querySuggestion) {
+                    // Sugerencia de búsqueda (no es un lugar específico)
+                    const query = s.querySuggestion;
+                    description = query.text?.text || '';
+                    mainText = query.text?.text || '';
+                    secondaryText = '';
+                    placeId = ''; // No hay place_id para queries
+                }
+
+                return {
+                    description: description,
+                    structured_formatting: {
+                        main_text: mainText,
+                        secondary_text: secondaryText
+                    },
+                    place_id: placeId
+                };
+            }).slice(0, 4); // Limitar a las mejores 4 opciones
+
+            displaySuggestions(formattedSuggestions, suggestionsId, inputId, type, 'google');
+        } else {
+            suggestionsContainer.innerHTML = '<div class="autocomplete-no-results">No se encontraron direcciones</div>';
         }
-    );
+    } catch (error) {
+        console.error('[Google Places] Error:', error);
+        // Fallback a Nominatim si Google falla
+        console.log('Fallback a Nominatim...');
+        searchAddresses(query, suggestionsId, inputId, type);
+    }
 }
 
 function displaySuggestions(suggestions, suggestionsId, inputId, type, source = 'nominatim') {

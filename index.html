@@ -153,9 +153,10 @@
                             </div>
 
                             <div class="form-row">
-                                <div class="input-group">
+                                <div class="input-group autocomplete-wrapper">
                                     <label for="taskLocation">Ubicación/Lugar:</label>
-                                    <input type="text" id="taskLocation" placeholder="Ej: Supermercado Centro" required>
+                                    <input type="text" id="taskLocation" placeholder="Ej: Supermercado Centro" required autocomplete="off">
+                                    <div id="taskLocationSuggestions" class="autocomplete-suggestions"></div>
                                 </div>
 
                                 <div class="input-group autocomplete-wrapper">
@@ -480,9 +481,10 @@
                     </div>
                 </div>
 
-                <div class="form-group">
+                <div class="form-group autocomplete-wrapper">
                     <label for="modalTaskLocation">Ubicación/Lugar:</label>
-                    <input type="text" id="modalTaskLocation" placeholder="Ej: Supermercado Centro" required>
+                    <input type="text" id="modalTaskLocation" placeholder="Ej: Supermercado Centro" required autocomplete="off">
+                    <div id="modalTaskLocationSuggestions" class="autocomplete-suggestions"></div>
                 </div>
 
                 <div class="form-group autocomplete-wrapper">
@@ -563,7 +565,7 @@
         (function() {
             if (window.APP_CONFIG && window.APP_CONFIG.useGoogleMaps && window.APP_CONFIG.googleMapsFrontendKey) {
                 const script = document.createElement('script');
-                script.src = `https://maps.googleapis.com/maps/api/js?key=${window.APP_CONFIG.googleMapsFrontendKey}&libraries=places&language=es`;
+                script.src = `https://maps.googleapis.com/maps/api/js?key=${window.APP_CONFIG.googleMapsFrontendKey}&libraries=places&language=es&loading=async`;
                 script.async = true;
                 script.defer = true;
                 script.onload = () => console.log('✅ Google Maps JavaScript API cargada');
