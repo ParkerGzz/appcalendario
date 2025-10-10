@@ -6,12 +6,8 @@ config.js
 .env.local
 .env.*.local
 
-# Documentación con API keys (contienen la key en ejemplos)
-HABILITAR-PLACES-API-NEW.md
-AUTOCOMPLETADO-CONFIGURADO.md
-SOLUCION-PROBLEMA-APIS.md
-CONFIGURACION-RAPIDA.md
-LEEME-PRIMERO.md
+# Documentación privada con API keys reales
+.private-docs/
 
 # Backend environment
 backend/.env
