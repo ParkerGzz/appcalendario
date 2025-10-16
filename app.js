@@ -1,3 +1,30 @@
+// ===== SEGURIDAD - PREVENCIÓN DE XSS =====
+/**
+ * Escapa caracteres HTML para prevenir XSS
+ * @param {string} str - Texto a escapar
+ * @returns {string} - Texto escapado y seguro para insertar en HTML
+ */
+function escapeHtml(str) {
+    if (str === null || str === undefined) return '';
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+}
+
+/**
+ * Sanitiza una URL para prevenir javascript: y data: URIs
+ * @param {string} url - URL a sanitizar
+ * @returns {string} - URL segura o cadena vacía
+ */
+function sanitizeUrl(url) {
+    if (!url) return '';
+    const lower = url.toLowerCase().trim();
+    if (lower.startsWith('javascript:') || lower.startsWith('data:') || lower.startsWith('vbscript:')) {
+        return '';
+    }
+    return url;
+}
+
 // ===== SESIÓN Y AUTENTICACIÓN =====
 let session = {
     user: null  // { email: '...' }
@@ -73,13 +100,31 @@ let fullCalendar = null;
 
 // Inicialización
 document.addEventListener('DOMContentLoaded', () => {
+    console.log('🚀 Iniciando aplicación...');
     loadSession();
+    console.log('📝 Sesión cargada:', session);
+
     mountNavHandlers();
     mountHelpModal();
+
+    // Auto-login en desarrollo si está habilitado en config
+    const autoLoginEnabled = window.APP_CONFIG && window.APP_CONFIG.authDemoEnabled;
+    console.log('🔐 Auto-login habilitado:', autoLoginEnabled);
+    console.log('🔐 Usuario autenticado:', isAuthenticated());
+
+    if (autoLoginEnabled && !isAuthenticated()) {
+        console.log('🔓 Ejecutando auto-login demo...');
+        session.user = { email: 'demo@demo.com' };
+        saveSession();
+        console.log('✅ Auto-login completado');
+    }
+
     if (isAuthenticated()) {
+        console.log('✅ Mostrando app...');
         showApp();
         initApp();
     } else {
+        console.log('⚠️ Mostrando pantalla de login...');
         showAuth();
         mountLoginForm();
     }
@@ -105,12 +150,29 @@ function showAuth() {
 }
 
 function showApp() {
-    document.getElementById('authView').style.display = 'none';
-    document.getElementById('appView').style.display = 'flex';
+    const authView = document.getElementById('authView');
+    const appView = document.getElementById('appView');
+
+    // Forzar ocultamiento completo
+    authView.style.display = 'none';
+    authView.style.visibility = 'hidden';
+    authView.style.opacity = '0';
+    authView.style.pointerEvents = 'none';
+    authView.style.zIndex = '-1';
+
+    // Mostrar app
+    appView.style.display = 'flex';
+    appView.style.visibility = 'visible';
+    appView.style.opacity = '1';
+    appView.style.pointerEvents = 'auto';
+    appView.style.zIndex = '1';
+
     const emailEl = document.getElementById('userEmail');
     if (emailEl && session.user) {
         emailEl.textContent = session.user.email;
     }
+
+    console.log('🎨 Vista cambiada - authView oculto, appView visible');
 }
 
 // ===== LOGIN =====
@@ -148,13 +210,38 @@ function logout() {
 function mountNavHandlers() {
     const toggleBtn = document.getElementById('toggleSidebar');
     const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('sidebarOverlay');
     const logoutBtn = document.getElementById('logoutButton');
     const navItems = document.querySelectorAll('.nav-item');
+    const mobileQuery = window.matchMedia('(max-width: 768px)');
+
+    const applySidebarState = (open) => {
+        if (!sidebar) return;
+        const isMobile = mobileQuery.matches;
+        const shouldOpen = !!open && isMobile;
+        sidebar.classList.toggle('open', shouldOpen);
+        document.body.classList.toggle('sidebar-open', shouldOpen);
+        if (overlay) {
+            overlay.hidden = !shouldOpen;
+        }
+        if (toggleBtn) {
+            toggleBtn.setAttribute('aria-expanded', shouldOpen ? 'true' : 'false');
+        }
+    };
+
+    const closeSidebar = () => applySidebarState(false);
 
     if (toggleBtn && sidebar) {
+        toggleBtn.setAttribute('aria-controls', 'sidebar');
+        toggleBtn.setAttribute('aria-expanded', 'false');
         toggleBtn.addEventListener('click', () => {
-            sidebar.classList.toggle('open');
+            const isOpen = sidebar.classList.contains('open');
+            applySidebarState(!isOpen);
         });
+    }
+
+    if (overlay) {
+        overlay.addEventListener('click', closeSidebar);
     }
 
     if (logoutBtn) {
@@ -168,13 +255,39 @@ function mountNavHandlers() {
             if (view) {
                 switchView(view);
             }
+            if (mobileQuery.matches) {
+                closeSidebar();
+            }
         });
     });
+
+    const handleMediaChange = (e) => {
+        if (!e.matches) {
+            if (sidebar) {
+                sidebar.classList.remove('open');
+            }
+            document.body.classList.remove('sidebar-open');
+            if (overlay) overlay.hidden = true;
+            if (toggleBtn) toggleBtn.setAttribute('aria-expanded', 'false');
+        }
+    };
+
+    if (mobileQuery.addEventListener) {
+        mobileQuery.addEventListener('change', handleMediaChange);
+    } else if (mobileQuery.addListener) {
+        mobileQuery.addListener(handleMediaChange);
+    }
 
     // Atajos de teclado
     let keyBuffer = '';
     document.addEventListener('keydown', (e) => {
         if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
+        if (e.key === 'Escape' && mobileQuery.matches && sidebar && sidebar.classList.contains('open')) {
+            e.preventDefault();
+            closeSidebar();
+            return;
+        }
 
         if (e.key === '?') {
             document.getElementById('helpButton')?.click();
@@ -221,11 +334,11 @@ function updateDashboard() {
         unassignedEl.innerHTML = '<p class="empty-state">No hay tareas pendientes</p>';
     } else {
         unassignedEl.innerHTML = unassignedTasks.slice(0, 5).map(task => `
-            <div class="task-item priority-${task.priority}">
-                <div class="task-name">${task.name}</div>
+            <div class="task-item priority-${escapeHtml(task.priority)}">
+                <div class="task-name">${escapeHtml(task.name)}</div>
                 <div class="task-details">
-                    <span>⏱️ ${task.duration}h</span>
-                    <span>📍 ${task.location}</span>
+                    <span>⏱️ ${escapeHtml(task.duration)}h</span>
+                    <span>📍 ${escapeHtml(task.location)}</span>
                 </div>
             </div>
         `).join('');
@@ -239,12 +352,35 @@ function updateDashboard() {
     if (allSuggestions.length === 0) {
         suggestionsEl.innerHTML = '<p class="empty-state">No hay sugerencias disponibles</p>';
     } else {
-        suggestionsEl.innerHTML = allSuggestions.slice(0, 5).map(s => `
-            <div class="suggestion-item ${s.priority || ''}">
-                <div class="suggestion-title">${s.title}</div>
-                <div class="suggestion-body">${s.reason}</div>
-            </div>
-        `).join('');
+        suggestionsEl.innerHTML = allSuggestions.slice(0, 5).map(s => {
+            // Generar título basado en el tipo de sugerencia
+            let title = s.title || '';
+            if (!title && s.type) {
+                switch(s.type) {
+                    case 'proximity':
+                        title = '🗺️ Tareas cercanas';
+                        break;
+                    case 'location-group':
+                        title = '📍 Agrupar por ubicación';
+                        break;
+                    case 'urgent':
+                        title = '⚠️ Tarea urgente';
+                        break;
+                    case 'deadline':
+                        title = '⏰ Fecha límite próxima';
+                        break;
+                    default:
+                        title = '💡 Sugerencia';
+                }
+            }
+
+            return `
+                <div class="suggestion-item ${s.priority || ''}">
+                    <div class="suggestion-title">${title}</div>
+                    <div class="suggestion-body">${s.reason}</div>
+                </div>
+            `;
+        }).join('');
     }
 }
 
@@ -270,7 +406,7 @@ function generateSmartAlerts() {
         // Alerta: Lugar cerrado
         if (details.isOpenNow === false) {
             alerts.push({
-                title: `⚠️ ${task.name} - Lugar cerrado`,
+                title: `⚠️ ${escapeHtml(task.name)} - Lugar cerrado`,
                 reason: `El lugar está cerrado actualmente. Revisa el horario y reprograma la tarea.`,
                 priority: 'urgent'
             });
@@ -288,7 +424,7 @@ function generateSmartAlerts() {
                 const timeLeft = hours > 0 ? `${hours}h ${mins}min` : `${mins}min`;
 
                 alerts.push({
-                    title: `⏰ ${task.name} - Cierra pronto`,
+                    title: `⏰ ${escapeHtml(task.name)} - Cierra pronto`,
                     reason: `El lugar cierra en ${timeLeft}. Considera ir ahora o reprogramar.`,
                     priority: 'warning'
                 });
@@ -302,8 +438,8 @@ function generateSmartAlerts() {
 
             if (currentTime > taskTime + 30) { // 30 minutos de margen
                 alerts.push({
-                    title: `📅 ${task.name} - Hora pasada`,
-                    reason: `La tarea estaba programada para las ${task.assignedTime}. ¿Ya la completaste?`,
+                    title: `📅 ${escapeHtml(task.name)} - Hora pasada`,
+                    reason: `La tarea estaba programada para las ${escapeHtml(task.assignedTime)}. ¿Ya la completaste?`,
                     priority: 'info'
                 });
             }
@@ -325,7 +461,7 @@ function generateSmartAlerts() {
             const closeHour = formatTime24(closeTime);
 
             alerts.push({
-                title: `💡 ${task.name} - Disponible hoy`,
+                title: `💡 ${escapeHtml(task.name)} - Disponible hoy`,
                 reason: `El lugar cierra hoy a las ${closeHour}. ¿Quieres programarla para hoy?`,
                 priority: 'info'
             });
@@ -354,24 +490,24 @@ function mountHelpModal() {
     if (!modal || !btn) return;
 
     btn.addEventListener('click', () => {
-        modal.classList.add('show');
+        openModal(modal, { focusSelector: '.modal-content' });
     });
 
     if (closeBtn) {
         closeBtn.addEventListener('click', () => {
-            modal.classList.remove('show');
+            closeModal(modal);
         });
     }
 
-    window.addEventListener('click', (e) => {
+    modal.addEventListener('click', (e) => {
         if (e.target === modal) {
-            modal.classList.remove('show');
+            closeModal(modal);
         }
     });
 
     document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape' && modal.classList.contains('show')) {
-            modal.classList.remove('show');
+        if (e.key === 'Escape' && !modal.hasAttribute('hidden')) {
+            closeModal(modal);
         }
     });
 }
@@ -396,6 +532,57 @@ function showNotification(message, type = 'info') {
             container.removeChild(toast);
         }
     }, 2800);
+}
+
+function openModal(modal, options = {}) {
+    if (!modal) return;
+    const { focusSelector } = options;
+    if (modal.classList.contains('modal')) {
+        modal.classList.add('show');
+    }
+    modal.removeAttribute('hidden');
+    modal.setAttribute('aria-hidden', 'false');
+    modal._previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+
+    let focusTarget = null;
+    if (focusSelector) {
+        focusTarget = modal.querySelector(focusSelector);
+    }
+    if (!focusTarget) {
+        focusTarget = modal;
+    }
+    if (focusTarget && typeof focusTarget.focus === 'function') {
+        focusTarget.focus();
+    }
+}
+
+function closeModal(modal) {
+    if (!modal) {
+        console.error('❌ closeModal: modal no encontrado');
+        return;
+    }
+
+    console.log('🚪 Cerrando modal:', modal.id);
+
+    // Forzar ocultamiento completo
+    modal.style.display = 'none';
+    modal.style.visibility = 'hidden';
+    modal.style.opacity = '0';
+    modal.style.pointerEvents = 'none';
+
+    if (modal.classList.contains('modal')) {
+        modal.classList.remove('show');
+    }
+    modal.setAttribute('aria-hidden', 'true');
+    modal.setAttribute('hidden', '');
+
+    const previousFocus = modal._previousFocus;
+    if (previousFocus && typeof previousFocus.focus === 'function') {
+        previousFocus.focus();
+    }
+    modal._previousFocus = null;
+
+    console.log('✅ Modal cerrado:', modal.id);
 }
 
 // Event Listeners
@@ -498,11 +685,26 @@ function setupAddressAutocomplete(inputId, suggestionsId, type) {
         }
     });
 
-    // Cerrar al hacer clic fuera
+    // Cerrar al hacer clic fuera - usar handler único con atributo data
+    input.dataset.autocompleteId = suggestionsId;
+}
+
+// Handler global único para cerrar autocomplete al hacer clic fuera
+// Se ejecuta una sola vez en lugar de 6 veces (una por campo)
+if (!window._autocompleteClickHandlerRegistered) {
+    window._autocompleteClickHandlerRegistered = true;
     document.addEventListener('click', (e) => {
-        if (!input.contains(e.target) && !suggestionsContainer.contains(e.target)) {
-            hideSuggestions(suggestionsId);
-        }
+        // Buscar todos los inputs con autocomplete activo
+        document.querySelectorAll('input[data-autocomplete-id]').forEach(input => {
+            const suggestionsId = input.dataset.autocompleteId;
+            const suggestionsContainer = document.getElementById(suggestionsId);
+
+            if (suggestionsContainer &&
+                !input.contains(e.target) &&
+                !suggestionsContainer.contains(e.target)) {
+                hideSuggestions(suggestionsId);
+            }
+        });
     });
 }
 
@@ -626,8 +828,8 @@ function displaySuggestions(suggestions, suggestionsId, inputId, type, source = 
             // Google Places format
             address = suggestion.description;
             const parts = suggestion.structured_formatting;
-            main = parts.main_text;
-            detail = parts.secondary_text || '';
+            main = escapeHtml(parts.main_text);
+            detail = escapeHtml(parts.secondary_text || '');
             placeId = suggestion.place_id;
             lat = '';
             lng = '';
@@ -635,8 +837,8 @@ function displaySuggestions(suggestions, suggestionsId, inputId, type, source = 
             // Nominatim format
             address = suggestion.display_name;
             const parts = address.split(',');
-            main = parts.slice(0, 2).join(',');
-            detail = parts.slice(2).join(',');
+            main = escapeHtml(parts.slice(0, 2).join(','));
+            detail = escapeHtml(parts.slice(2).join(','));
             lat = suggestion.lat;
             lng = suggestion.lon;
             placeId = '';
@@ -1540,8 +1742,11 @@ function generateSuggestions() {
     const unassignedTasks = state.tasks.filter(t => !t.assignedDate);
 
     if (unassignedTasks.length === 0) {
-        document.getElementById('suggestions').innerHTML = '<div class="empty-state">No hay tareas pendientes de asignar</div>';
-        return;
+        const suggestionsContainer = document.getElementById('suggestions');
+        if (suggestionsContainer) {
+            suggestionsContainer.innerHTML = '<div class="empty-state">No hay tareas pendientes de asignar</div>';
+        }
+        return [];
     }
 
     const suggestions = [];
@@ -1920,12 +2125,12 @@ function createTaskCard(task, showAll = false) {
     return `
         <div class="task-item ${priorityClass} ${task.status === 'archived' ? 'task-archived' : ''}" onclick="openTaskModal(${task.id})">
             <div class="task-header">
-                <div class="task-title">${task.name}</div>
-                <div class="task-priority ${priorityClass}">${task.priority}</div>
+                <div class="task-title">${escapeHtml(task.name)}</div>
+                <div class="task-priority ${priorityClass}">${escapeHtml(task.priority)}</div>
             </div>
             <div class="task-details">
-                <div>⏱️ Duración: ${task.duration} hora(s)</div>
-                <div>📍 Ubicación: ${task.location}</div>
+                <div>⏱️ Duración: ${escapeHtml(task.duration)} hora(s)</div>
+                <div>📍 Ubicación: ${escapeHtml(task.location)}</div>
                 ${addressText}
                 ${placeInfoText}
                 ${trafficInfoText}
@@ -1976,18 +2181,18 @@ function getPlaceInfoHTML(task) {
     // Calificación
     if (details.rating) {
         const stars = '⭐'.repeat(Math.round(details.rating));
-        html += `<div>${stars} ${details.rating} (${details.ratingCount} reseñas)</div>`;
+        html += `<div>${stars} ${escapeHtml(details.rating)} (${escapeHtml(details.ratingCount)} reseñas)</div>`;
     }
 
     // Nivel de precio
     if (details.priceLevel !== null && details.priceLevel !== undefined) {
         const price = '$'.repeat(details.priceLevel + 1);
-        html += `<div>💰 Precio: ${price}</div>`;
+        html += `<div>💰 Precio: ${escapeHtml(price)}</div>`;
     }
 
     // Teléfono
     if (details.phone) {
-        html += `<div>📞 ${details.phone}</div>`;
+        html += `<div>📞 ${escapeHtml(details.phone)}</div>`;
     }
 
     html += '</div>';
@@ -2274,36 +2479,8 @@ function renderCalendar() {
 function getFullCalendarEvents() {
     const events = [];
 
-    // Agregar bloques de trabajo (todos los días laborables)
-    const today = new Date();
-    for (let i = -30; i <= 30; i++) {
-        const date = new Date(today);
-        date.setDate(today.getDate() + i);
-
-        // Solo días laborables (Lun-Vie)
-        if (date.getDay() >= 1 && date.getDay() <= 5) {
-            const dateStr = formatDateToString(date);
-            const [startHour, startMin] = state.workSchedule.start.split(':');
-            const [endHour, endMin] = state.workSchedule.end.split(':');
-
-            const startDate = new Date(date);
-            startDate.setHours(parseInt(startHour), parseInt(startMin), 0);
-
-            const endDate = new Date(date);
-            endDate.setHours(parseInt(endHour), parseInt(endMin), 0);
-
-            events.push({
-                id: `work-${dateStr}`,
-                title: '💼 Trabajo',
-                start: startDate,
-                end: endDate,
-                classNames: ['work-block'],
-                editable: false,
-                backgroundColor: '#334155',
-                borderColor: '#475569'
-            });
-        }
-    }
+    const { start: workRangeStart, end: workRangeEnd } = getWorkBlockRange();
+    events.push(...generateWorkBlockEvents(workRangeStart, workRangeEnd));
 
     // Agregar tareas asignadas (solo activas y pendientes, no archivadas)
     state.tasks.forEach(task => {
@@ -2340,6 +2517,64 @@ function getFullCalendarEvents() {
     });
 
     return events;
+}
+
+function getWorkBlockRange() {
+    if (fullCalendar && fullCalendar.view) {
+        return {
+            start: new Date(fullCalendar.view.currentStart),
+            end: new Date(fullCalendar.view.currentEnd)
+        };
+    }
+
+    const today = new Date();
+    const start = new Date(today);
+    start.setDate(start.getDate() - 7);
+    const end = new Date(today);
+    end.setDate(end.getDate() + 30);
+    return { start, end };
+}
+
+function generateWorkBlockEvents(rangeStart, rangeEnd) {
+    const events = [];
+    const [startHour, startMin] = state.workSchedule.start.split(':');
+    const [endHour, endMin] = state.workSchedule.end.split(':');
+
+    const start = startOfDay(rangeStart);
+    const end = startOfDay(rangeEnd);
+
+    for (let current = new Date(start.getTime()); current < end; current.setDate(current.getDate() + 1)) {
+        if (current.getDay() < 1 || current.getDay() > 5) {
+            continue;
+        }
+
+        const dateStr = formatDateToString(current);
+
+        const startDate = new Date(current.getTime());
+        startDate.setHours(parseInt(startHour, 10), parseInt(startMin, 10), 0, 0);
+
+        const endDate = new Date(current.getTime());
+        endDate.setHours(parseInt(endHour, 10), parseInt(endMin, 10), 0, 0);
+
+        events.push({
+            id: `work-${dateStr}`,
+            title: '💼 Trabajo',
+            start: startDate,
+            end: endDate,
+            classNames: ['work-block'],
+            editable: false,
+            backgroundColor: '#334155',
+            borderColor: '#475569'
+        });
+    }
+
+    return events;
+}
+
+function startOfDay(date) {
+    const day = new Date(date);
+    day.setHours(0, 0, 0, 0);
+    return day;
 }
 
 // Actualizar eventos del calendario
@@ -2995,10 +3230,10 @@ function displayRouteResults(route, pois, tasks, departureTime) {
         poisDiv.innerHTML = pois.map(poi => `
             <div class="poi-item">
                 <div class="poi-info">
-                    <div class="poi-name">${poi.name}</div>
+                    <div class="poi-name">${escapeHtml(poi.name)}</div>
                     <div class="poi-details">
-                        <span>📍 ${poi.type}</span>
-                        <span>🔄 +${poi.detour} min desvío</span>
+                        <span>📍 ${escapeHtml(poi.type)}</span>
+                        <span>🔄 +${escapeHtml(poi.detour)} min desvío</span>
                     </div>
                 </div>
                 <div class="poi-crowd ${poi.crowdLevel}">
@@ -3015,15 +3250,15 @@ function displayRouteResults(route, pois, tasks, departureTime) {
         tasksDiv.innerHTML = tasks.map(item => `
             <div class="route-task-item">
                 <div class="route-task-header">
-                    <div class="route-task-name">${item.task.name}</div>
-                    <div class="route-task-detour">⏱️ ${item.task.duration}h</div>
+                    <div class="route-task-name">${escapeHtml(item.task.name)}</div>
+                    <div class="route-task-detour">⏱️ ${escapeHtml(item.task.duration)}h</div>
                 </div>
                 <div class="route-task-options">
                     ${item.options.map(poi => `
-                        <div class="route-task-option" onclick="assignTaskToLocation(${item.task.id}, '${poi.name}')">
-                            <div class="route-task-option-name">${poi.name}</div>
+                        <div class="route-task-option" onclick="assignTaskToLocation(${item.task.id}, '${escapeHtml(poi.name).replace(/'/g, '&#39;')}')">
+                            <div class="route-task-option-name">${escapeHtml(poi.name)}</div>
                             <div class="route-task-option-meta">
-                                <span>+${poi.detour} min</span>
+                                <span>+${escapeHtml(poi.detour)} min</span>
                                 <span class="poi-crowd ${poi.crowdLevel}">${getCrowdLabel(poi.crowdLevel)}</span>
                             </div>
                         </div>
@@ -3180,13 +3415,12 @@ function openTaskModal(taskId = null, prefilledData = null) {
         }
     }
 
-    modal.style.display = 'flex';
-    document.getElementById('modalTaskName').focus();
+    openModal(modal, { focusSelector: '#modalTaskName' });
 }
 
 function closeTaskModal() {
     const modal = document.getElementById('taskModal');
-    modal.style.display = 'none';
+    closeModal(modal);
 }
 
 function saveTaskFromModal(e) {
@@ -3344,7 +3578,7 @@ function archiveTaskFromModal() {
 document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
         const modal = document.getElementById('taskModal');
-        if (modal && modal.style.display === 'flex') {
+        if (modal && !modal.hasAttribute('hidden')) {
             closeTaskModal();
         }
     }
@@ -3353,7 +3587,7 @@ document.addEventListener('keydown', (e) => {
 // Cerrar modal al hacer click fuera
 document.addEventListener('click', (e) => {
     const modal = document.getElementById('taskModal');
-    if (e.target === modal) {
+    if (modal && e.target === modal && !modal.hasAttribute('hidden')) {
         closeTaskModal();
     }
 });
@@ -3364,4 +3598,627 @@ function toggleArchivedTasks() {
     if (list) {
         list.style.display = list.style.display === 'none' ? 'block' : 'none';
     }
+}
+
+// ============================================
+// ROUTE RECOMMENDATIONS SYSTEM
+// ============================================
+
+let currentSelectedRoute = null;
+let currentTransportMode = null;
+let currentRouteDetails = null;
+
+/**
+ * Muestra las recomendaciones de rutas para hoy
+ */
+async function showRouteRecommendations() {
+    const modal = document.getElementById('routeRecommendationsModal');
+    const listContainer = document.getElementById('routeRecommendationsList');
+
+    openModal(modal, { focusSelector: '.modal-header h2' });
+    listContainer.innerHTML = '<div class="loading-message"><p>⏳ Generando recomendaciones de rutas...</p></div>';
+
+    try {
+        // Obtener tareas de hoy
+        const today = new Date().toISOString().split('T')[0];
+        const todayTasks = state.tasks.filter(task => {
+            if (task.archived || task.completed) return false;
+
+            // Si tiene fecha, debe ser hoy
+            if (task.date) {
+                return task.date === today;
+            }
+
+            // Si tiene deadline, debe ser hoy o anterior
+            if (task.deadline) {
+                return task.deadline <= today;
+            }
+
+            return false;
+        });
+
+        if (todayTasks.length === 0) {
+            listContainer.innerHTML = `
+                <div class="loading-message">
+                    <p>📅 No hay tareas pendientes para hoy</p>
+                    <p style="font-size: 0.9em; margin-top: 8px;">Agrega tareas con fecha de hoy para ver recomendaciones de rutas</p>
+                </div>
+            `;
+            return;
+        }
+
+        // Filtrar tareas que tienen ubicación
+        const tasksWithLocation = todayTasks.filter(task => task.location && task.location.trim() !== '');
+
+        if (tasksWithLocation.length === 0) {
+            listContainer.innerHTML = `
+                <div class="loading-message">
+                    <p>📍 No hay tareas con ubicación para hoy</p>
+                    <p style="font-size: 0.9em; margin-top: 8px;">Agrega ubicaciones a tus tareas para recibir recomendaciones de rutas</p>
+                </div>
+            `;
+            return;
+        }
+
+        // Generar recomendaciones de rutas
+        const routes = await generateRouteRecommendations(tasksWithLocation);
+
+        if (routes.length === 0) {
+            listContainer.innerHTML = `
+                <div class="loading-message">
+                    <p>🤷 No se pudieron generar rutas</p>
+                    <p style="font-size: 0.9em; margin-top: 8px;">Verifica que las ubicaciones sean válidas</p>
+                </div>
+            `;
+            return;
+        }
+
+        // Mostrar recomendaciones
+        displayRouteRecommendations(routes, tasksWithLocation);
+
+    } catch (error) {
+        console.error('Error generando recomendaciones:', error);
+        listContainer.innerHTML = `
+            <div class="loading-message">
+                <p>❌ Error al generar recomendaciones</p>
+                <p style="font-size: 0.9em; margin-top: 8px;">${error.message}</p>
+            </div>
+        `;
+    }
+}
+
+/**
+ * Genera recomendaciones de rutas basadas en las tareas
+ */
+async function generateRouteRecommendations(tasks) {
+    const routes = [];
+
+    // Ruta 1: Orden por prioridad
+    const priorityRoute = {
+        id: 'priority',
+        name: 'Ruta por Prioridad',
+        description: 'Completa primero las tareas más importantes',
+        tasks: [...tasks].sort((a, b) => {
+            const priorityOrder = { high: 3, medium: 2, low: 1 };
+            return (priorityOrder[b.priority] || 0) - (priorityOrder[a.priority] || 0);
+        }),
+        score: 85
+    };
+    routes.push(priorityRoute);
+
+    // Ruta 2: Orden cronológico (por hora de inicio si existe)
+    const tasksWithTime = tasks.filter(t => t.startTime);
+    if (tasksWithTime.length > 0) {
+        const chronoRoute = {
+            id: 'chronological',
+            name: 'Ruta Cronológica',
+            description: 'Sigue el orden de tus horarios programados',
+            tasks: [...tasks].sort((a, b) => {
+                if (!a.startTime) return 1;
+                if (!b.startTime) return -1;
+                return a.startTime.localeCompare(b.startTime);
+            }),
+            score: 90
+        };
+        routes.push(chronoRoute);
+    }
+
+    // Ruta 3: Orden por cercanía (simple - sin APIs)
+    // Agrupar tareas por palabras clave de ubicación
+    const proximityRoute = {
+        id: 'proximity',
+        name: 'Ruta Optimizada por Cercanía',
+        description: 'Agrupa tareas cercanas para minimizar desplazamientos',
+        tasks: groupTasksByProximity(tasks),
+        score: 95
+    };
+    routes.push(proximityRoute);
+
+    // Ruta 4: Balance (prioridad + tiempo)
+    const balancedRoute = {
+        id: 'balanced',
+        name: 'Ruta Balanceada',
+        description: 'Equilibrio entre prioridad, tiempo y ubicación',
+        tasks: [...tasks].sort((a, b) => {
+            const priorityOrder = { high: 3, medium: 2, low: 1 };
+            const aPriority = priorityOrder[a.priority] || 0;
+            const bPriority = priorityOrder[b.priority] || 0;
+
+            // Si tienen diferente prioridad, ordenar por prioridad
+            if (aPriority !== bPriority) {
+                return bPriority - aPriority;
+            }
+
+            // Si tienen misma prioridad, ordenar por tiempo
+            if (a.startTime && b.startTime) {
+                return a.startTime.localeCompare(b.startTime);
+            }
+
+            return 0;
+        }),
+        score: 88
+    };
+    routes.push(balancedRoute);
+
+    return routes;
+}
+
+/**
+ * Agrupa tareas por cercanía basándose en palabras clave de ubicación
+ */
+function groupTasksByProximity(tasks) {
+    // Clonar tareas
+    const tasksCopy = [...tasks];
+    const grouped = [];
+    const used = new Set();
+
+    // Extraer palabras clave de ubicaciones
+    const getLocationKeywords = (location) => {
+        if (!location) return [];
+        return location.toLowerCase()
+            .split(/[\s,.-]+/)
+            .filter(word => word.length > 3);
+    };
+
+    // Para cada tarea, buscar tareas cercanas
+    for (let i = 0; i < tasksCopy.length; i++) {
+        if (used.has(i)) continue;
+
+        const task = tasksCopy[i];
+        grouped.push(task);
+        used.add(i);
+
+        const keywords = getLocationKeywords(task.location);
+
+        // Buscar tareas con ubicaciones similares
+        for (let j = i + 1; j < tasksCopy.length; j++) {
+            if (used.has(j)) continue;
+
+            const otherTask = tasksCopy[j];
+            const otherKeywords = getLocationKeywords(otherTask.location);
+
+            // Verificar si comparten palabras clave
+            const sharedKeywords = keywords.filter(k => otherKeywords.includes(k));
+
+            if (sharedKeywords.length > 0) {
+                grouped.push(otherTask);
+                used.add(j);
+            }
+        }
+    }
+
+    return grouped;
+}
+
+/**
+ * Muestra las recomendaciones de rutas en el modal
+ */
+function displayRouteRecommendations(routes, allTasks) {
+    const listContainer = document.getElementById('routeRecommendationsList');
+
+    listContainer.innerHTML = routes.map(route => {
+        const totalTasks = route.tasks.length;
+        const estimatedTime = totalTasks * 45; // 45 min por tarea aprox
+        const estimatedDistance = totalTasks * 3; // 3 km por tarea aprox
+
+        return `
+            <div class="route-recommendation-card" onclick="selectRouteRecommendation('${route.id}')">
+                <div class="route-card-header">
+                    <h3 class="route-card-title">${route.name}</h3>
+                    <div class="route-card-score">${route.score}/100</div>
+                </div>
+
+                <p style="color: var(--text-secondary); margin-bottom: 16px;">${route.description}</p>
+
+                <div class="route-card-stats">
+                    <div class="route-stat">
+                        <span class="route-stat-icon">📍</span>
+                        <span><span class="route-stat-value">${totalTasks}</span> paradas</span>
+                    </div>
+                    <div class="route-stat">
+                        <span class="route-stat-icon">⏱️</span>
+                        <span><span class="route-stat-value">~${Math.floor(estimatedTime / 60)}h ${estimatedTime % 60}m</span></span>
+                    </div>
+                    <div class="route-stat">
+                        <span class="route-stat-icon">🛣️</span>
+                        <span><span class="route-stat-value">~${estimatedDistance} km</span></span>
+                    </div>
+                </div>
+
+                <div class="route-card-tasks">
+                    <div class="route-card-tasks-title">🗺️ Orden de tareas:</div>
+                    <div class="route-card-task-list">
+                        ${route.tasks.slice(0, 4).map((task, idx) => `
+                            <div class="route-card-task">
+                                <span class="route-card-task-time">${idx + 1}.</span>
+                                <span class="route-card-task-arrow">→</span>
+                                <span>${task.title}</span>
+                            </div>
+                        `).join('')}
+                        ${route.tasks.length > 4 ? `
+                            <div class="route-card-task" style="font-style: italic; color: var(--text-secondary);">
+                                <span>+ ${route.tasks.length - 4} tareas más...</span>
+                            </div>
+                        ` : ''}
+                    </div>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+/**
+ * Selecciona una recomendación de ruta
+ */
+function selectRouteRecommendation(routeId) {
+    // Obtener la ruta seleccionada
+    const today = new Date().toISOString().split('T')[0];
+    const todayTasks = state.tasks.filter(task => {
+        if (task.archived || task.completed) return false;
+        if (task.date) return task.date === today;
+        if (task.deadline) return task.deadline <= today;
+        return false;
+    });
+
+    const tasksWithLocation = todayTasks.filter(task => task.location && task.location.trim() !== '');
+
+    // Regenerar las rutas para obtener la seleccionada
+    generateRouteRecommendations(tasksWithLocation).then(routes => {
+        const selectedRoute = routes.find(r => r.id === routeId);
+
+        if (!selectedRoute) {
+            console.error('Ruta no encontrada:', routeId);
+            return;
+        }
+
+        currentSelectedRoute = selectedRoute;
+
+        // Cerrar modal de recomendaciones
+        closeRouteRecommendationsModal();
+
+        // Abrir modal de detalles de ruta
+        showRouteDetailsModal();
+    });
+}
+
+/**
+ * Muestra el modal de detalles de ruta
+ */
+function showRouteDetailsModal() {
+    const modal = document.getElementById('routeDetailsModal');
+    const contentContainer = document.getElementById('routeDetailsContent');
+
+    openModal(modal, { focusSelector: '.transport-option' });
+
+    // Resetear modo de transporte
+    currentTransportMode = null;
+    document.querySelectorAll('.transport-option').forEach(btn => {
+        btn.classList.remove('selected');
+    });
+
+    // Mostrar mensaje inicial
+    contentContainer.innerHTML = `
+        <div class="loading-message">
+            <p>👆 Selecciona un método de transporte para calcular la ruta</p>
+        </div>
+    `;
+
+    // Ocultar botón de aplicar
+    document.getElementById('btnApplyRoute').style.display = 'none';
+}
+
+/**
+ * Selecciona el modo de transporte y calcula la ruta
+ */
+async function selectTransportMode(mode) {
+    if (!currentSelectedRoute) {
+        console.error('No hay ruta seleccionada');
+        return;
+    }
+
+    currentTransportMode = mode;
+
+    // Actualizar UI de selección
+    document.querySelectorAll('.transport-option').forEach(btn => {
+        btn.classList.remove('selected');
+    });
+    document.querySelector(`[data-mode="${mode}"]`).classList.add('selected');
+
+    // Mostrar loading
+    const contentContainer = document.getElementById('routeDetailsContent');
+    contentContainer.innerHTML = `
+        <div class="loading-message">
+            <p>⏳ Calculando ruta con ${getModeLabel(mode)}...</p>
+        </div>
+    `;
+
+    try {
+        // Calcular detalles de la ruta
+        const routeDetails = await calculateRouteDetails(currentSelectedRoute, mode);
+        currentRouteDetails = routeDetails;
+
+        // Mostrar detalles
+        displayRouteDetails(routeDetails);
+
+        // Mostrar botón de aplicar
+        document.getElementById('btnApplyRoute').style.display = 'inline-block';
+
+    } catch (error) {
+        console.error('Error calculando ruta:', error);
+        contentContainer.innerHTML = `
+            <div class="loading-message">
+                <p>❌ Error al calcular la ruta</p>
+                <p style="font-size: 0.9em; margin-top: 8px;">${error.message}</p>
+            </div>
+        `;
+    }
+}
+
+/**
+ * Calcula los detalles de la ruta con el modo de transporte seleccionado
+ */
+async function calculateRouteDetails(route, mode) {
+    const tasks = route.tasks;
+    const steps = [];
+    let totalDistance = 0;
+    let totalDuration = 0;
+
+    // Obtener ubicación de inicio (home si existe)
+    let currentLocation = state.locations?.home?.address || 'Mi ubicación';
+
+    // Para cada tarea, calcular el paso
+    for (let i = 0; i < tasks.length; i++) {
+        const task = tasks[i];
+        const destination = task.location;
+
+        // Simular cálculo de distancia y tiempo
+        // En producción, aquí usarías Google Maps Routes API o OSRM
+        const distance = Math.random() * 5 + 1; // 1-6 km
+        const duration = calculateTravelTime(distance, mode);
+
+        totalDistance += distance;
+        totalDuration += duration;
+
+        steps.push({
+            number: i + 1,
+            from: currentLocation,
+            to: destination,
+            task: task,
+            distance: distance,
+            duration: duration,
+            mode: mode
+        });
+
+        currentLocation = destination;
+    }
+
+    return {
+        route: route,
+        mode: mode,
+        steps: steps,
+        totalDistance: totalDistance,
+        totalDuration: totalDuration,
+        totalTasks: tasks.length
+    };
+}
+
+/**
+ * Calcula el tiempo de viaje basado en distancia y modo
+ */
+function calculateTravelTime(distanceKm, mode) {
+    const speeds = {
+        driving: 30,    // km/h en ciudad
+        transit: 25,    // km/h transporte público
+        bicycling: 15,  // km/h en bicicleta
+        walking: 5      // km/h caminando
+    };
+
+    const speedKmH = speeds[mode] || 30;
+    const timeHours = distanceKm / speedKmH;
+    const timeMinutes = Math.round(timeHours * 60);
+
+    return timeMinutes;
+}
+
+/**
+ * Muestra los detalles de la ruta calculada
+ */
+function displayRouteDetails(details) {
+    const contentContainer = document.getElementById('routeDetailsContent');
+
+    const modeIcons = {
+        driving: '🚗',
+        transit: '🚌',
+        bicycling: '🚴',
+        walking: '🚶'
+    };
+
+    contentContainer.innerHTML = `
+        <div class="route-steps">
+            ${details.steps.map(step => `
+                <div class="route-step">
+                    <div class="route-step-number">${step.number}</div>
+                    <div class="route-step-content">
+                        <div class="route-step-location">
+                            <strong>${step.task.title}</strong>
+                        </div>
+                        <div style="font-size: 0.9em; color: var(--text-secondary); margin-bottom: 8px;">
+                            📍 ${step.to}
+                        </div>
+                        <div class="route-step-details">
+                            <div class="route-step-detail">
+                                <span class="route-step-detail-icon">${modeIcons[step.mode]}</span>
+                                <span>${step.distance.toFixed(1)} km</span>
+                            </div>
+                            <div class="route-step-detail">
+                                <span class="route-step-detail-icon">⏱️</span>
+                                <span>${step.duration} min</span>
+                            </div>
+                            ${step.task.startTime ? `
+                                <div class="route-step-detail">
+                                    <span class="route-step-detail-icon">🕐</span>
+                                    <span>${step.task.startTime}</span>
+                                </div>
+                            ` : ''}
+                            ${step.task.priority ? `
+                                <div class="route-step-detail">
+                                    <span class="route-step-detail-icon">${getPriorityIcon(step.task.priority)}</span>
+                                    <span>${getPriorityLabel(step.task.priority)}</span>
+                                </div>
+                            ` : ''}
+                        </div>
+                    </div>
+                </div>
+            `).join('')}
+        </div>
+
+        <div class="route-summary">
+            <div class="route-summary-title">
+                ✅ Resumen de la Ruta
+            </div>
+            <div class="route-summary-stats">
+                <div class="route-summary-stat">
+                    <div class="route-summary-stat-label">Distancia Total</div>
+                    <div class="route-summary-stat-value">${details.totalDistance.toFixed(1)} km</div>
+                </div>
+                <div class="route-summary-stat">
+                    <div class="route-summary-stat-label">Tiempo de Viaje</div>
+                    <div class="route-summary-stat-value">${Math.floor(details.totalDuration / 60)}h ${details.totalDuration % 60}m</div>
+                </div>
+                <div class="route-summary-stat">
+                    <div class="route-summary-stat-label">Tareas</div>
+                    <div class="route-summary-stat-value">${details.totalTasks}</div>
+                </div>
+                <div class="route-summary-stat">
+                    <div class="route-summary-stat-label">Transporte</div>
+                    <div class="route-summary-stat-value">${getModeLabel(details.mode)}</div>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+/**
+ * Obtiene el icono de prioridad
+ */
+function getPriorityIcon(priority) {
+    const icons = {
+        high: '🔴',
+        medium: '🟡',
+        low: '🟢'
+    };
+    return icons[priority] || '⚪';
+}
+
+/**
+ * Obtiene la etiqueta de prioridad
+ */
+function getPriorityLabel(priority) {
+    const labels = {
+        high: 'Alta',
+        medium: 'Media',
+        low: 'Baja'
+    };
+    return labels[priority] || priority;
+}
+
+/**
+ * Aplica la ruta seleccionada al calendario
+ */
+function applySelectedRoute() {
+    if (!currentRouteDetails) {
+        console.error('No hay detalles de ruta para aplicar');
+        return;
+    }
+
+    // Preguntar confirmación
+    if (!confirm('¿Quieres aplicar esta ruta? Esto actualizará el orden de tus tareas de hoy.')) {
+        return;
+    }
+
+    // Actualizar orden de tareas basado en la ruta
+    const steps = currentRouteDetails.steps;
+    let currentTime = new Date();
+
+    // Si es muy tarde, empezar mañana
+    if (currentTime.getHours() >= 20) {
+        currentTime.setDate(currentTime.getDate() + 1);
+        currentTime.setHours(8, 0, 0, 0);
+    } else if (currentTime.getHours() < 7) {
+        currentTime.setHours(8, 0, 0, 0);
+    }
+
+    steps.forEach((step, index) => {
+        const task = step.task;
+
+        // Actualizar hora de inicio si no tiene
+        if (!task.startTime) {
+            const hours = currentTime.getHours().toString().padStart(2, '0');
+            const minutes = currentTime.getMinutes().toString().padStart(2, '0');
+            task.startTime = `${hours}:${minutes}`;
+        }
+
+        // Añadir duración de viaje + duración de tarea
+        const taskDuration = task.duration || 60; // 1 hora por defecto
+        currentTime.setMinutes(currentTime.getMinutes() + step.duration + taskDuration);
+
+        // Actualizar la tarea en el estado
+        const taskIndex = state.tasks.findIndex(t => t.id === task.id);
+        if (taskIndex !== -1) {
+            state.tasks[taskIndex] = task;
+        }
+    });
+
+    // Guardar cambios
+    saveToStorage();
+    renderCalendar();
+    renderTaskList();
+
+    // Cerrar modales
+    closeRouteDetailsModal();
+
+    // Notificar
+    showNotification(`✅ Ruta aplicada: ${steps.length} tareas organizadas con ${getModeLabel(currentRouteDetails.mode)}`, 'success');
+
+    // Cambiar a vista de calendario
+    switchView('calendar');
+}
+
+/**
+ * Cierra el modal de recomendaciones de rutas
+ */
+function closeRouteRecommendationsModal() {
+    const modal = document.getElementById('routeRecommendationsModal');
+    closeModal(modal);
+}
+
+/**
+ * Cierra el modal de detalles de ruta
+ */
+function closeRouteDetailsModal() {
+    const modal = document.getElementById('routeDetailsModal');
+    closeModal(modal);
+    currentSelectedRoute = null;
+    currentTransportMode = null;
+    currentRouteDetails = null;
 }

@@ -3,12 +3,18 @@
   --bg2: #111827;        /* gray-900 */
   --panel: #0b1220;      /* dark panel */
   --brand: #7c3aed;      /* violet-600 */
+  --accent: #a855f7;     /* violet-500 */
   --ok: #10b981;         /* emerald */
   --warn: #f59e0b;       /* amber */
   --danger: #ef4444;     /* red */
+  --success: #22c55e;    /* emerald brighter */
   --text: #f8fafc;       /* slate-50 */
   --text-muted: #94a3b8; /* slate-400 */
+  --text-primary: var(--text);
+  --text-secondary: #cbd5f5;
   --border: #1e293b;     /* slate-800 */
+  --bg-secondary: #182338;
+  --focus-ring: rgba(124, 58, 237, 0.35);
 }
 
 * {
@@ -151,6 +157,19 @@ body {
   background: var(--border);
 }
 
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+}
+
+.btn-icon:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--focus-ring);
+}
+
 /* ========== APP CONTAINER ========== */
 .app-container {
   display: flex;
@@ -165,6 +184,25 @@ body {
   border-right: 1px solid var(--border);
   padding: 20px 0;
   overflow-y: auto;
+}
+
+.sidebar-overlay {
+  position: fixed;
+  top: 60px;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(15, 23, 42, 0.65);
+  backdrop-filter: blur(2px);
+  z-index: 900;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+
+body.sidebar-open .sidebar-overlay {
+  opacity: 1;
+  pointer-events: auto;
 }
 
 .sidebar.collapsed {
@@ -398,6 +436,17 @@ body {
   background: #6d28d9;
 }
 
+.btn-brand {
+  background: linear-gradient(135deg, var(--brand), var(--accent));
+  color: #fff;
+  box-shadow: 0 10px 25px rgba(124, 58, 237, 0.25);
+}
+
+.btn-brand:hover {
+  background: linear-gradient(135deg, var(--accent), var(--brand));
+  box-shadow: 0 12px 28px rgba(124, 58, 237, 0.35);
+}
+
 .btn-secondary {
   background: var(--border);
   color: var(--text);
@@ -414,6 +463,15 @@ body {
 
 .btn-success:hover {
   background: #059669;
+}
+
+.btn-info {
+  background: #3b82f6;
+  color: #fff;
+}
+
+.btn-info:hover {
+  background: #2563eb;
 }
 
 .btn-danger {
@@ -1554,11 +1612,16 @@ body {
   background: rgba(0, 0, 0, 0.7);
   backdrop-filter: blur(4px);
   z-index: 10000;
-  display: flex;
+  display: none; /* Oculto por defecto */
   align-items: center;
   justify-content: center;
   padding: 20px;
   animation: fadeIn 0.2s ease;
+}
+
+/* Mostrar modal cuando NO tiene el atributo hidden */
+.task-modal:not([hidden]) {
+  display: flex;
 }
 
 @keyframes fadeIn {
@@ -1801,4 +1864,415 @@ body {
   color: var(--warn);
   text-decoration: underline;
   font-weight: 600;
+}
+
+/* ============================================
+   ROUTE RECOMMENDATIONS SYSTEM
+   ============================================ */
+
+/* Dashboard header */
+.dashboard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.dashboard-header h2 {
+  margin: 0;
+  flex: 1;
+  min-width: 200px;
+}
+
+/* Route recommendations list */
+.route-recommendations-list {
+  display: grid;
+  gap: 16px;
+  margin: 20px 0;
+}
+
+.route-recommendation-card {
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(139, 92, 246, 0.05) 100%);
+  border: 2px solid rgba(99, 102, 241, 0.2);
+  border-radius: 12px;
+  padding: 20px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.route-recommendation-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, var(--brand), var(--accent));
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.3s ease;
+}
+
+.route-recommendation-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(99, 102, 241, 0.3);
+  border-color: var(--brand);
+}
+
+.route-recommendation-card:hover::before {
+  transform: scaleX(1);
+}
+
+.route-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 16px;
+  gap: 12px;
+}
+
+.route-card-title {
+  font-size: 1.2em;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+  flex: 1;
+}
+
+.route-card-score {
+  background: linear-gradient(135deg, var(--brand), var(--accent));
+  color: white;
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-weight: 700;
+  font-size: 0.9em;
+  white-space: nowrap;
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.4);
+}
+
+.route-card-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.route-stat {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.9em;
+  color: var(--text-secondary);
+}
+
+.route-stat-icon {
+  font-size: 1.2em;
+}
+
+.route-stat-value {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.route-card-tasks {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.route-card-tasks-title {
+  font-size: 0.85em;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.route-card-task-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.route-card-task {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.9em;
+  padding: 6px 10px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 6px;
+  color: var(--text-primary);
+}
+
+.route-card-task-time {
+  font-weight: 600;
+  color: var(--brand);
+  min-width: 50px;
+}
+
+.route-card-task-arrow {
+  color: var(--text-secondary);
+}
+
+/* Transport selector */
+.transport-selector {
+  margin-bottom: 30px;
+}
+
+.transport-selector h3 {
+  margin-bottom: 16px;
+  color: var(--text-primary);
+  font-size: 1.1em;
+}
+
+.transport-options-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.transport-option {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 20px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.transport-option::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, var(--brand), var(--accent));
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  z-index: 0;
+}
+
+.transport-option:hover {
+  transform: translateY(-4px);
+  border-color: var(--brand);
+  box-shadow: 0 8px 20px rgba(99, 102, 241, 0.3);
+}
+
+.transport-option:hover::before {
+  opacity: 0.1;
+}
+
+.transport-option.selected {
+  background: linear-gradient(135deg, var(--brand), var(--accent));
+  border-color: var(--brand);
+  box-shadow: 0 4px 16px rgba(99, 102, 241, 0.5);
+}
+
+.transport-option.selected::before {
+  opacity: 1;
+}
+
+.transport-option.selected .transport-icon {
+  transform: scale(1.2);
+}
+
+.transport-icon {
+  font-size: 2.5em;
+  transition: transform 0.3s ease;
+  z-index: 1;
+  position: relative;
+}
+
+.transport-label {
+  font-weight: 600;
+  font-size: 0.95em;
+  color: var(--text-primary);
+  text-align: center;
+  z-index: 1;
+  position: relative;
+}
+
+.transport-option.selected .transport-label {
+  color: white;
+}
+
+/* Route details content */
+.route-details-content {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 24px;
+  min-height: 200px;
+}
+
+.loading-message {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+  color: var(--text-secondary);
+  font-style: italic;
+}
+
+.route-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.route-step {
+  display: flex;
+  gap: 16px;
+  padding: 16px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 10px;
+  border-left: 4px solid var(--brand);
+  transition: all 0.2s ease;
+}
+
+.route-step:hover {
+  background: rgba(255, 255, 255, 0.08);
+  transform: translateX(4px);
+}
+
+.route-step-number {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  background: linear-gradient(135deg, var(--brand), var(--accent));
+  color: white;
+  border-radius: 50%;
+  font-weight: 700;
+  flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.4);
+}
+
+.route-step-content {
+  flex: 1;
+}
+
+.route-step-location {
+  font-weight: 600;
+  font-size: 1.05em;
+  color: var(--text-primary);
+  margin-bottom: 6px;
+}
+
+.route-step-details {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  font-size: 0.9em;
+  color: var(--text-secondary);
+}
+
+.route-step-detail {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.route-step-detail-icon {
+  font-size: 1.1em;
+}
+
+.route-summary {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(5, 150, 105, 0.05) 100%);
+  border: 2px solid rgba(16, 185, 129, 0.3);
+  border-radius: 12px;
+  padding: 20px;
+  margin-top: 20px;
+}
+
+.route-summary-title {
+  font-weight: 700;
+  font-size: 1.1em;
+  color: var(--success);
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.route-summary-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+}
+
+.route-summary-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.route-summary-stat-label {
+  font-size: 0.85em;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.route-summary-stat-value {
+  font-size: 1.3em;
+  font-weight: 700;
+  color: var(--success);
+}
+
+/* Modal large variant */
+.modal-large .modal-content {
+  max-width: 900px;
+  width: 95%;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .dashboard-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .dashboard-header h2 {
+    text-align: center;
+  }
+
+  .transport-options-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .route-card-stats {
+    grid-template-columns: 1fr;
+  }
+
+  .route-summary-stats {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  .transport-options-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .modal-large .modal-content {
+    width: 100%;
+    max-width: 100%;
+    margin: 0;
+    border-radius: 0;
+    max-height: 100vh;
+  }
 }

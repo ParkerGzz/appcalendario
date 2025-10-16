@@ -39,12 +39,12 @@
         <!-- Topbar -->
         <header class="topbar">
             <div class="topbar-left">
-                <button id="toggleSidebar" class="btn-icon" title="Menú">☰</button>
+                <button id="toggleSidebar" class="btn-icon" title="Menú" aria-label="Abrir o cerrar menú de navegación">☰</button>
                 <img src="assets/logo.svg" alt="Logo" class="topbar-logo">
                 <h1 class="topbar-title">Calendario Inteligente</h1>
             </div>
             <div class="topbar-right">
-                <button id="helpButton" class="btn-icon" title="Ayuda (?)">❓</button>
+                <button id="helpButton" class="btn-icon" title="Ayuda (?)" aria-label="Abrir ventana de ayuda">❓</button>
                 <div class="user-menu">
                     <img src="assets/avatar.png" alt="Avatar" class="user-avatar">
                     <span id="userEmail" class="user-email">usuario@ejemplo.com</span>
@@ -79,12 +79,18 @@
                     </a>
                 </nav>
             </aside>
+            <div id="sidebarOverlay" class="sidebar-overlay" hidden></div>
 
             <!-- Main Content -->
             <main class="main-content">
                 <!-- Dashboard View -->
                 <section id="viewDashboard" class="content-view active">
-                    <h2>📊 Dashboard</h2>
+                    <div class="dashboard-header">
+                        <h2>📊 Dashboard</h2>
+                        <button id="btnRouteRecommendations" class="btn btn-brand" onclick="showRouteRecommendations()">
+                            🗺️ Ver Recomendaciones de Rutas
+                        </button>
+                    </div>
 
                     <div class="dashboard-grid">
                         <div class="card">
@@ -390,10 +396,10 @@
     </div>
 
     <!-- Modal de Ayuda -->
-    <div id="helpModal" class="modal">
+    <div id="helpModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="helpModalTitle" aria-hidden="true" hidden tabindex="-1">
         <div class="modal-content">
-            <span class="close">&times;</span>
-            <h2>🚀 Cómo Usar el Calendario Inteligente</h2>
+            <button type="button" class="close" aria-label="Cerrar ayuda">&times;</button>
+            <h2 id="helpModalTitle">🚀 Cómo Usar el Calendario Inteligente</h2>
 
             <div class="help-section">
                 <h3>1️⃣ Configurar Ubicaciones 📍</h3>
@@ -448,11 +454,11 @@
     </div>
 
     <!-- Modal Flotante para Tareas -->
-    <div id="taskModal" class="task-modal" style="display: none;">
+    <div id="taskModal" class="task-modal" role="dialog" aria-modal="true" aria-labelledby="taskModalTitle" aria-hidden="true" hidden tabindex="-1">
         <div class="task-modal-content">
             <div class="task-modal-header">
                 <h3 id="taskModalTitle">➕ Nueva Tarea</h3>
-                <button class="task-modal-close" onclick="closeTaskModal()">✕</button>
+                <button type="button" class="task-modal-close" aria-label="Cerrar formulario de tarea" onclick="closeTaskModal()">✕</button>
             </div>
 
             <form id="taskModalForm" class="task-modal-form">
@@ -536,6 +542,67 @@
     <!-- Toast Container -->
     <div id="toastContainer" class="toast-container"></div>
 
+    <!-- Modal de Recomendaciones de Rutas -->
+    <div id="routeRecommendationsModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="routeRecommendationsTitle" aria-hidden="true" hidden tabindex="-1">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h2 id="routeRecommendationsTitle">🗺️ Recomendaciones de Rutas para Hoy</h2>
+                <button type="button" class="close" aria-label="Cerrar recomendaciones de rutas" onclick="closeRouteRecommendationsModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="routeRecommendationsList" class="route-recommendations-list">
+                    <!-- Se llenará dinámicamente -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Detalles de Ruta -->
+    <div id="routeDetailsModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="routeDetailsTitle" aria-hidden="true" hidden tabindex="-1">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h2 id="routeDetailsTitle">🚗 Planifica tu Ruta</h2>
+                <button type="button" class="close" aria-label="Cerrar detalles de ruta" onclick="closeRouteDetailsModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="transport-selector">
+                    <h3>Selecciona tu método de transporte:</h3>
+                    <div class="transport-options-grid">
+                        <button class="transport-option" data-mode="driving" onclick="selectTransportMode('driving')">
+                            <span class="transport-icon">🚗</span>
+                            <span class="transport-label">Auto</span>
+                        </button>
+                        <button class="transport-option" data-mode="transit" onclick="selectTransportMode('transit')">
+                            <span class="transport-icon">🚌</span>
+                            <span class="transport-label">Transporte Público</span>
+                        </button>
+                        <button class="transport-option" data-mode="bicycling" onclick="selectTransportMode('bicycling')">
+                            <span class="transport-icon">🚴</span>
+                            <span class="transport-label">Bicicleta</span>
+                        </button>
+                        <button class="transport-option" data-mode="walking" onclick="selectTransportMode('walking')">
+                            <span class="transport-icon">🚶</span>
+                            <span class="transport-label">Caminando</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div id="routeDetailsContent" class="route-details-content">
+                    <div class="loading-message">
+                        <p>Selecciona un método de transporte para calcular la ruta</p>
+                    </div>
+                </div>
+
+                <div class="modal-actions">
+                    <button class="btn btn-secondary" onclick="closeRouteDetailsModal()">Cancelar</button>
+                    <button id="btnApplyRoute" class="btn btn-success" onclick="applySelectedRoute()" style="display: none;">
+                        ✅ Aplicar Esta Ruta
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- FullCalendar JS with fallback -->
     <script>
         (function loadFullCalendarWithFallback() {
@@ -577,6 +644,7 @@
         })();
     </script>
 
+    <script src="config.js"></script>
     <script src="google-maps-api.js"></script>
     <script src="app.js"></script>
 </body>

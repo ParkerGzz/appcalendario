@@ -18,10 +18,10 @@ if (!process.env.GMAPS_SERVER_KEY) {
   process.exit(1);
 }
 
-// Middleware
+// Middleware - CORS configurado para permitir acceso desde cualquier origen
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:8000',
-  credentials: true
+  origin: process.env.CORS_ORIGINS === '*' ? '*' : (process.env.CORS_ORIGINS?.split(',') || ['http://localhost:8000']),
+  credentials: process.env.CORS_ORIGINS === '*' ? false : true
 }));
 
 app.use(express.json());
@@ -66,14 +66,17 @@ app.use((req, res) => {
   });
 });
 
-// Start server
-app.listen(PORT, () => {
+// Start server - Escuchar en todas las interfaces (0.0.0.0)
+const HOST = process.env.HOST || '0.0.0.0';
+app.listen(PORT, HOST, () => {
   console.log('');
   console.log('🚀 ================================');
   console.log('🚀 Calendario Backend iniciado');
   console.log('🚀 ================================');
   console.log(`📡 Puerto: ${PORT}`);
-  console.log(`🌐 URL: http://localhost:${PORT}`);
+  console.log(`🌐 Host: ${HOST}`);
+  console.log(`🌐 URL Local: http://localhost:${PORT}`);
+  console.log(`🌍 URL Red: http://<TU_IP>:${PORT}`);
   console.log(`🔑 Google Maps API: ${process.env.GMAPS_SERVER_KEY ? '✅ Configurada' : '❌ NO configurada'}`);
   console.log('');
   console.log('📚 Endpoints disponibles:');

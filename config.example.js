@@ -1,123 +1,326 @@
 /**
- * Archivo de configuración para APIs externas
+ * =========================================
+ * CONFIGURACIÓN DEL CALENDARIO INTELIGENTE (EJEMPLO)
+ * =========================================
  *
- * IMPORTANTE:
- * 1. Copiar este archivo a config.js
- * 2. Reemplazar los valores de ejemplo con tus propias API keys
- * 3. NO commitear config.js (está en .gitignore)
+ * IMPORTANTE - INSTRUCCIONES DE INSTALACIÓN:
+ * 1. Copiar .env.example a .env
+ * 2. Reemplazar los valores en .env con tus propias API keys
+ * 3. NO commitear el archivo .env (ya está en .gitignore)
+ * 4. Este archivo (config.example.js) SÍ se puede commitear públicamente
+ *
+ * SEGURIDAD:
+ * - Las API keys ahora se cargan desde variables de entorno (.env)
+ * - Este archivo muestra la estructura de configuración sin secretos
  */
 
-const CONFIG = {
-  // Google Maps Platform
-  // Obtener en: https://console.cloud.google.com/google/maps-apis
-  googleMaps: {
-    apiKey: 'YOUR_GOOGLE_MAPS_API_KEY_HERE',
-    // Servicios a habilitar:
-    // - Maps JavaScript API
-    // - Geocoding API
-    // - Places API
-    // - Distance Matrix API
-    // - Directions API
-    // - Time Zone API
+window.APP_CONFIG = {
+  // ===== INFORMACIÓN DE LA APP =====
+  app: {
+    name: 'Calendario Inteligente',
+    version: '2.0.0',
+    language: 'es',
+    timezone: 'America/Santiago',
+    dateFormat: 'DD-MM-YYYY',
   },
 
-  // Google Calendar API (OAuth 2.0)
-  // Obtener en: https://console.cloud.google.com/apis/credentials
+  // ===== AUTENTICACIÓN =====
+  auth: {
+    demoEnabled: true, // Cambiar a false cuando uses auth real
+    providers: ['google', 'microsoft', 'apple'], // Proveedores disponibles
+  },
+
+  // ===== BACKEND CONFIGURATION =====
+  backend: {
+    enabled: true,
+    // Auto-detectar la URL del backend basado en el hostname actual
+    url: window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+      ? 'http://localhost:3000'
+      : `http://${window.location.hostname}:3000`,
+    // Endpoints
+    endpoints: {
+      route: '/api/route',
+      trafficMatrix: '/api/traffic-matrix',
+      detour: '/api/calculate-detour',
+      placesAlongRoute: '/api/places-along-route',
+      placesNearby: '/api/places-nearby',
+      categoryTypes: '/api/category-types',
+    },
+    timeout: 30000, // 30 segundos
+  },
+
+  // ===== GOOGLE MAPS PLATFORM =====
+  googleMaps: {
+    enabled: true,
+
+    // Frontend API Key
+    // ⚠️ IMPORTANTE: Esta clave debe tener las siguientes APIs habilitadas:
+    // - Maps JavaScript API
+    // - Places API (New) ← OBLIGATORIA para autocompletado
+    // - Geocoding API
+    // - Routes API (opcional, para backend)
+    // - Distance Matrix API (opcional, para backend)
+    // SEGURIDAD: La API key se carga desde variables de entorno (.env)
+    // Ver archivo .env.example para configuración
+    apiKey: import.meta?.env?.VITE_GOOGLE_MAPS_API_KEY || '',
+
+    // Configuración de carga
+    loadingStrategy: 'async', // 'async' o 'defer'
+    libraries: ['places'], // Librerías a cargar
+    language: 'es',
+    region: 'CL', // Código de país para resultados localizados
+
+    // Restricciones de HTTP Referrer (configurar en Google Cloud Console):
+    // - http://localhost:*/*
+    // - http://127.0.0.1:*/*
+    // - file:///*
+
+    // Configuración de búsqueda de lugares
+    placesConfig: {
+      // Tipos de lugares para incluir en búsquedas
+      includedTypes: [
+        'restaurant',
+        'store',
+        'shopping_mall',
+        'cafe',
+        'hospital',
+        'pharmacy',
+        'bank',
+        'school',
+        'gym',
+        'park',
+        'supermarket',
+        'gas_station',
+        'post_office',
+        'library'
+      ],
+      // Radio de búsqueda por defecto (metros)
+      defaultRadius: 5000,
+    },
+  },
+
+  // ===== GOOGLE CALENDAR API (futuro) =====
   googleCalendar: {
-    clientId: 'YOUR_GOOGLE_CLIENT_ID_HERE.apps.googleusercontent.com',
-    clientSecret: 'YOUR_GOOGLE_CLIENT_SECRET_HERE',
-    redirectUri: 'http://localhost:8000/auth/google/callback',
+    enabled: false,
+    clientId: '', // YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com
     scopes: [
       'https://www.googleapis.com/auth/calendar.readonly',
       'https://www.googleapis.com/auth/calendar.events'
-    ]
+    ],
+    syncInterval: 15 * 60 * 1000, // 15 minutos en ms
   },
 
-  // Microsoft Graph API (Outlook/Office 365)
-  // Obtener en: https://portal.azure.com/#view/Microsoft_AAD_RegisteredApps
+  // ===== MICROSOFT CALENDAR API (futuro) =====
   microsoft: {
-    clientId: 'YOUR_MICROSOFT_CLIENT_ID_HERE',
-    clientSecret: 'YOUR_MICROSOFT_CLIENT_SECRET_HERE',
-    redirectUri: 'http://localhost:8000/auth/microsoft/callback',
-    scopes: [
-      'Calendars.Read',
-      'Calendars.ReadWrite'
-    ]
+    enabled: false,
+    clientId: '', // YOUR_MICROSOFT_CLIENT_ID
+    scopes: ['Calendars.Read', 'Calendars.ReadWrite'],
+    syncInterval: 15 * 60 * 1000, // 15 minutos en ms
   },
 
-  // Apple iCloud Calendar (CalDAV)
-  // Requiere contraseña específica de app
-  // Generar en: https://appleid.apple.com/account/manage
+  // ===== APPLE iCLOUD CALENDAR (futuro) =====
   apple: {
-    // Usuario: email de iCloud
-    // Password: app-specific password (no la contraseña principal)
+    enabled: false,
     calDavUrl: 'https://caldav.icloud.com',
-    // El backend manejará la autenticación CalDAV
+    syncInterval: 15 * 60 * 1000, // 15 minutos en ms
   },
 
-  // Configuración de la aplicación
-  app: {
-    name: 'Calendario Inteligente',
-    version: '0.1.0',
-    timezone: 'America/Santiago', // Cambiar según tu ubicación
-    language: 'es',
+  // ===== APIS GRATUITAS (FALLBACK) =====
+  fallback: {
+    // OpenStreetMap Nominatim (Geocoding gratuito)
+    nominatim: {
+      enabled: true,
+      url: 'https://nominatim.openstreetmap.org',
+      // IMPORTANTE: Nominatim requiere User-Agent
+      userAgent: 'CalendarioInteligente/2.0',
+      // Límite: 1 request/segundo
+      rateLimit: 1000, // ms entre requests
+    },
 
-    // URLs (cambiar en producción)
-    frontendUrl: 'http://localhost:8000',
-    backendUrl: 'http://localhost:3000', // Cuando implementes backend
+    // OSRM (Routing gratuito)
+    osrm: {
+      enabled: true,
+      url: 'https://router.project-osrm.org',
+      // Sin límite estricto pero usar con moderación
+      rateLimit: 100, // ms entre requests
+    },
   },
 
-  // Cache y límites
+  // ===== CACHE Y OPTIMIZACIÓN =====
   cache: {
-    distanceCacheTTL: 7 * 24 * 60 * 60, // 7 días en segundos
-    geocodeCacheTTL: 30 * 24 * 60 * 60, // 30 días
-    calendarSyncInterval: 15 * 60, // 15 minutos
+    // Tiempo de vida de caché (segundos)
+    distanceTTL: 7 * 24 * 60 * 60,      // 7 días
+    geocodeTTL: 30 * 24 * 60 * 60,      // 30 días
+    placeDetailsTTL: 24 * 60 * 60,      // 1 día
+    trafficTTL: 15 * 60,                // 15 minutos
+
+    // Almacenamiento
+    storage: 'localStorage', // 'localStorage' o 'indexedDB'
+    maxSize: 10 * 1024 * 1024, // 10 MB máximo
   },
 
-  // Optimización
+  // ===== ALGORITMO DE OPTIMIZACIÓN =====
   scheduling: {
-    defaultBufferMin: 15, // Buffer por defecto entre tareas
-    maxTravelTimeMin: 120, // Máximo tiempo de viaje aceptable
-    travelSpeedKmh: 30, // Velocidad promedio en ciudad
+    // Tiempos por defecto
+    defaultTaskDuration: 1, // horas
+    defaultBufferMin: 15, // minutos entre tareas
+    maxTravelTimeMin: 120, // tiempo máximo de viaje aceptable
 
-    // Franjas horarias para cache de distancias
+    // Velocidades promedio (km/h)
+    speeds: {
+      walking: 5,
+      cycling: 15,
+      driving: 30,
+      transit: 25,
+    },
+
+    // Franjas horarias para optimización de tráfico
     timeBuckets: {
-      morning: { start: '06:00', end: '10:00' },
-      midday: { start: '10:00', end: '14:00' },
-      afternoon: { start: '14:00', end: '18:00' },
-      evening: { start: '18:00', end: '22:00' }
+      morning: { start: '06:00', end: '10:00', trafficFactor: 1.5 },
+      midday: { start: '10:00', end: '14:00', trafficFactor: 1.0 },
+      afternoon: { start: '14:00', end: '18:00', trafficFactor: 1.3 },
+      evening: { start: '18:00', end: '22:00', trafficFactor: 1.2 },
+      night: { start: '22:00', end: '06:00', trafficFactor: 0.8 },
     },
 
     // Pesos para el algoritmo de scoring
     weights: {
-      travelTime: 2.0,    // Penalización por tiempo de viaje
-      deadline: 5.0,      // Importancia de cumplir deadlines
-      priority: 3.0,      // Peso de prioridad de tarea
-      grouping: 1.5       // Bonus por agrupar tareas cercanas
-    }
+      travelTime: 2.0,      // Penalización por tiempo de viaje
+      deadline: 5.0,        // Importancia de cumplir deadlines
+      priority: 3.0,        // Peso de prioridad de tarea
+      grouping: 1.5,        // Bonus por agrupar tareas cercanas
+      traffic: 1.8,         // Factor de tráfico en tiempo real
+    },
+
+    // Distancias de agrupación (metros)
+    groupingDistance: 2000, // 2km - tareas más cercanas se agrupan
   },
 
-  // Límites de uso (para prevenir abusos)
+  // ===== NOTIFICACIONES Y ALERTAS =====
+  notifications: {
+    enabled: true,
+
+    // Tipos de alertas
+    alerts: {
+      closingSoon: true,        // Lugar cierra pronto
+      placeClosed: true,        // Lugar cerrado
+      heavyTraffic: true,       // Tráfico pesado
+      taskMissed: true,         // Tarea con hora pasada
+      deadlineApproaching: true, // Deadline cercano
+    },
+
+    // Umbrales para alertas
+    thresholds: {
+      closingSoonMin: 30,       // Alerta X minutos antes de cerrar
+      deadlineDays: 2,          // Alerta X días antes del deadline
+      trafficDelayMin: 10,      // Alerta si tráfico añade X minutos
+    },
+  },
+
+  // ===== LÍMITES Y RATE LIMITING =====
   rateLimits: {
-    googleMapsQPS: 50, // Queries por segundo
-    nominatimQPS: 1,   // OpenStreetMap: 1 req/seg máximo
-    osrmQPS: 10
-  }
+    googleMapsQPS: 50,    // Queries por segundo (Google Maps)
+    nominatimQPS: 1,      // Max 1 req/seg (política de Nominatim)
+    osrmQPS: 10,          // Requests por segundo (OSRM)
+    backendTimeout: 30000, // Timeout para llamadas al backend (ms)
+  },
+
+  // ===== FEATURES FLAGS =====
+  features: {
+    smartAlerts: true,          // Alertas inteligentes
+    trafficIntegration: true,   // Integración con tráfico en tiempo real
+    routeOptimization: true,    // Optimización de rutas
+    placeDetails: true,         // Detalles de lugares (horarios, etc.)
+    voiceCommands: false,       // Comandos de voz (futuro)
+    offlineMode: false,         // Modo offline (futuro)
+    aiSuggestions: false,       // Sugerencias con IA (futuro)
+  },
+
+  // ===== TEMAS Y UI =====
+  ui: {
+    theme: 'light',             // 'light', 'dark', 'auto'
+    defaultView: 'dashboard',   // Vista inicial
+    mapStyle: 'default',        // Estilo del mapa
+    compactMode: false,         // Modo compacto
+  },
+
+  // ===== DEBUG Y DESARROLLO =====
+  debug: {
+    enabled: true,              // Logs en consola
+    verbose: false,             // Logs detallados
+    showApiCalls: true,         // Mostrar llamadas a APIs
+    mockData: false,            // Usar datos de prueba
+  },
 };
 
-// Validación básica al cargar
-if (typeof window !== 'undefined') {
-  // Verificar si las keys están configuradas (en producción)
-  const isProduction = window.location.hostname !== 'localhost';
+// =========================================
+// VALIDACIÓN Y WARNINGS
+// =========================================
 
-  if (isProduction) {
-    if (CONFIG.googleMaps.apiKey.includes('YOUR_')) {
-      console.warn('⚠️ Google Maps API key no configurada. Algunas funciones no estarán disponibles.');
+(function validateConfig() {
+  if (typeof window === 'undefined') return;
+
+  const config = window.APP_CONFIG;
+  const isProduction = !window.location.hostname.includes('localhost');
+
+  // Validar Google Maps
+  if (config.googleMaps.enabled) {
+    if (!config.googleMaps.apiKey || config.googleMaps.apiKey.includes('YOUR_')) {
+      console.warn('⚠️ Google Maps API key no configurada. Usando fallback (Nominatim).');
+      config.googleMaps.enabled = false;
     }
   }
+
+  // Validar backend
+  if (config.backend.enabled) {
+    if (!config.backend.url) {
+      console.warn('⚠️ Backend URL no configurada. Funciones avanzadas no disponibles.');
+      config.backend.enabled = false;
+    }
+  }
+
+  // Información de inicio
+  if (config.debug.enabled) {
+    console.log(`
+╔════════════════════════════════════════╗
+║  ${config.app.name} v${config.app.version}          ║
+╚════════════════════════════════════════╝
+
+📍 Google Maps: ${config.googleMaps.enabled ? '✅ Habilitado' : '❌ Deshabilitado'}
+🔄 Backend: ${config.backend.enabled ? '✅ Habilitado' : '❌ Deshabilitado'}
+🌐 Fallback APIs: ${config.fallback.nominatim.enabled ? '✅ Habilitado' : '❌ Deshabilitado'}
+🔔 Notificaciones: ${config.notifications.enabled ? '✅ Habilitado' : '❌ Deshabilitado'}
+
+Zona horaria: ${config.app.timezone}
+Idioma: ${config.app.language}
+Modo: ${isProduction ? 'Producción' : 'Desarrollo'}
+    `);
+  }
+
+  // Advertencia si no hay Google Maps en producción
+  if (isProduction && !config.googleMaps.enabled) {
+    console.warn('⚠️ Google Maps deshabilitado en producción. Experiencia limitada.');
+  }
+})();
+
+// =========================================
+// EXPORT PARA MÓDULOS
+// =========================================
+
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = window.APP_CONFIG;
 }
 
-// Export para uso en módulos
-if (typeof module !== 'undefined' && module.exports) {
-  module.exports = CONFIG;
-}
+// =========================================
+// COMPATIBILIDAD CON CÓDIGO LEGACY
+// =========================================
+
+// Mantener compatibilidad con código antiguo que usa estas propiedades
+window.APP_CONFIG.useGoogleMaps = window.APP_CONFIG.googleMaps.enabled;
+window.APP_CONFIG.googleMapsFrontendKey = window.APP_CONFIG.googleMaps.apiKey;
+window.APP_CONFIG.backendURL = window.APP_CONFIG.backend.url;
+window.APP_CONFIG.nominatimURL = window.APP_CONFIG.fallback.nominatim.url;
+window.APP_CONFIG.osrmURL = window.APP_CONFIG.fallback.osrm.url;
+window.APP_CONFIG.timezone = window.APP_CONFIG.app.timezone;
+window.APP_CONFIG.dateFormat = window.APP_CONFIG.app.dateFormat;
+window.APP_CONFIG.authDemoEnabled = window.APP_CONFIG.auth.demoEnabled;
