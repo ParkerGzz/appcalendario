@@ -535,13 +535,28 @@ function showNotification(message, type = 'info') {
 }
 
 function openModal(modal, options = {}) {
-    if (!modal) return;
+    if (!modal) {
+        console.error('❌ openModal: modal no encontrado');
+        return;
+    }
+
+    console.log('🚪 Abriendo modal:', modal.id);
+
     const { focusSelector } = options;
+
+    // Agregar clase show y remover hidden
     if (modal.classList.contains('modal')) {
         modal.classList.add('show');
     }
     modal.removeAttribute('hidden');
     modal.setAttribute('aria-hidden', 'false');
+
+    // Forzar visibilidad completa
+    modal.style.display = 'flex';
+    modal.style.visibility = 'visible';
+    modal.style.opacity = '1';
+    modal.style.pointerEvents = 'auto';
+
     modal._previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
 
     let focusTarget = null;
@@ -552,8 +567,10 @@ function openModal(modal, options = {}) {
         focusTarget = modal;
     }
     if (focusTarget && typeof focusTarget.focus === 'function') {
-        focusTarget.focus();
+        setTimeout(() => focusTarget.focus(), 100);
     }
+
+    console.log('✅ Modal abierto:', modal.id);
 }
 
 function closeModal(modal) {
@@ -2628,8 +2645,8 @@ function formatDate(date) {
         date = new Date(date);
     }
     if (isNaN(date.getTime())) {
-        console.error('Invalid date:', date);
-        return 'Fecha inválida';
+        console.warn('⚠️ Fecha inválida ignorada:', date);
+        return 'Sin fecha';
     }
     const day = String(date.getDate()).padStart(2, '0');
     const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -2644,8 +2661,8 @@ function formatDateShort(date) {
         date = new Date(date);
     }
     if (isNaN(date.getTime())) {
-        console.error('Invalid date:', date);
-        return 'Fecha inválida';
+        console.warn('⚠️ Fecha inválida ignorada:', date);
+        return 'Sin fecha';
     }
     const days = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
     const day = String(date.getDate()).padStart(2, '0');
@@ -3925,6 +3942,17 @@ function showRouteDetailsModal() {
 
     // Ocultar botón de aplicar
     document.getElementById('btnApplyRoute').style.display = 'none';
+
+    // Inicializar mapa si no existe
+    if (!routeMap) {
+        showMapLoading();
+        setTimeout(() => {
+            const initialized = initializeRouteMap();
+            if (initialized && currentSelectedRoute && currentSelectedRoute.tasks && currentTransportMode) {
+                displayRouteOnMap(currentSelectedRoute.tasks, currentTransportMode);
+            }
+        }, 300);
+    }
 }
 
 /**
@@ -3959,6 +3987,11 @@ async function selectTransportMode(mode) {
 
         // Mostrar detalles
         displayRouteDetails(routeDetails);
+
+        // Mostrar ruta en el mapa interactivo
+        if (currentSelectedRoute && currentSelectedRoute.tasks) {
+            displayRouteOnMap(currentSelectedRoute.tasks, mode);
+        }
 
         // Mostrar botón de aplicar
         document.getElementById('btnApplyRoute').style.display = 'inline-block';
@@ -4192,10 +4225,14 @@ function applySelectedRoute() {
     // Guardar cambios
     saveToStorage();
     renderCalendar();
-    renderTaskList();
+    renderTasks(); // Corregido: era renderTaskList()
+    updateDashboard(); // Actualizar dashboard también
 
     // Cerrar modales
     closeRouteDetailsModal();
+
+    // Mostrar notificación de éxito
+    showNotification('✅ Ruta aplicada exitosamente. Revisa tus tareas en el Dashboard o en la vista de Tareas.', 'success');
 
     // Notificar
     showNotification(`✅ Ruta aplicada: ${steps.length} tareas organizadas con ${getModeLabel(currentRouteDetails.mode)}`, 'success');

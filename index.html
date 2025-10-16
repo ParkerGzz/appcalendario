@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Calendario Inteligente</title>
     <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="styles-mapa.css">
     <!-- FullCalendar CSS -->
     <link id="fc-css" rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.css" onerror="this.onerror=null; this.href='https://unpkg.com/fullcalendar@5.11.3/main.min.css'">
 </head>
@@ -587,6 +588,23 @@
                     </div>
                 </div>
 
+                <!-- Mapa Interactivo -->
+                <div class="route-map-section">
+                    <div class="route-map-header">
+                        <h3>🗺️ Visualización de Ruta</h3>
+                        <div class="map-controls">
+                            <button id="btnToggleTraffic" class="btn-map-control" onclick="toggleTrafficLayer()" title="Mostrar/Ocultar Tráfico">
+                                🚦 Tráfico
+                            </button>
+                            <button id="btnMyLocation" class="btn-map-control" onclick="centerMapOnUserLocation()" title="Mi Ubicación">
+                                📍 Mi Ubicación
+                            </button>
+                        </div>
+                    </div>
+                    <div id="routeMapContainer" class="route-map-container"></div>
+                    <div id="routeSummaryInfo"></div>
+                </div>
+
                 <div id="routeDetailsContent" class="route-details-content">
                     <div class="loading-message">
                         <p>Selecciona un método de transporte para calcular la ruta</p>
@@ -646,6 +664,7 @@
 
     <script src="config.js"></script>
     <script src="google-maps-api.js"></script>
+    <script src="mapa-ruta.js"></script>
     <script src="app.js"></script>
 </body>
 </html>
