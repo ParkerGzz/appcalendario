@@ -90,6 +90,34 @@ let state = {
         mode: 'driving',  // driving, transit, bicycling, walking
         maxDetour: 10      // minutos de desvío máximo aceptable
     },
+    preferences: {
+        scheduling: {
+            preferredStartTime: '09:00',
+            preferredEndTime: '18:00',
+            breakDuration: 15,  // minutos entre tareas
+            minimumTaskDuration: 30,  // minutos
+            maximumDailyTasks: 8
+        },
+        optimization: {
+            priorityWeights: {
+                urgent: 5.0,
+                high: 3.0,
+                normal: 2.0,
+                low: 1.0
+            },
+            locationClustering: true,
+            clusterRadius: 2000,  // metros
+            minimizeTravel: true,
+            respectDeadlines: true
+        },
+        notifications: {
+            taskReminders: true,
+            reminderMinutes: 15,
+            trafficAlerts: true,
+            deadlineWarnings: true,
+            deadlineWarningDays: 2
+        }
+    },
     poiTypes: ['supermercado', 'farmacia', 'banco'],
     tasks: [],
     currentWeekStart: new Date()
@@ -319,6 +347,7 @@ function switchView(viewName) {
     if (navItem) navItem.classList.add('active');
 
     if (viewName === 'dashboard') updateDashboard();
+    if (viewName === 'settings') loadOptimizationPreferences();
 }
 
 // ===== DASHBOARD =====
@@ -628,6 +657,50 @@ function setupEventListeners() {
         openTaskModal();
     });
 
+    // Botones de navegación del calendario
+    document.getElementById('calendarPrev')?.addEventListener('click', () => {
+        if (fullCalendar) {
+            fullCalendar.prev();
+        }
+    });
+
+    document.getElementById('calendarNext')?.addEventListener('click', () => {
+        if (fullCalendar) {
+            fullCalendar.next();
+        }
+    });
+
+    document.getElementById('calendarToday')?.addEventListener('click', () => {
+        if (fullCalendar) {
+            fullCalendar.today();
+        }
+    });
+
+    // Botones de cambio de vista del calendario
+    document.getElementById('viewListWeek')?.addEventListener('click', () => {
+        if (fullCalendar) {
+            fullCalendar.changeView('listWeek');
+            updateViewSwitcherActive('viewListWeek');
+            setTimeout(() => fullCalendar.updateSize(), 100);
+        }
+    });
+
+    document.getElementById('viewTimeDay')?.addEventListener('click', () => {
+        if (fullCalendar) {
+            fullCalendar.changeView('timeGridDay');
+            updateViewSwitcherActive('viewTimeDay');
+            setTimeout(() => fullCalendar.updateSize(), 100);
+        }
+    });
+
+    document.getElementById('viewTimeWeek')?.addEventListener('click', () => {
+        if (fullCalendar) {
+            fullCalendar.changeView('timeGridWeek');
+            updateViewSwitcherActive('viewTimeWeek');
+            setTimeout(() => fullCalendar.updateSize(), 100);
+        }
+    });
+
     // Autocompletado de direcciones
     setupAddressAutocomplete('homeAddress', 'homeAddressSuggestions', 'home');
     setupAddressAutocomplete('workAddress', 'workAddressSuggestions', 'work');
@@ -638,6 +711,9 @@ function setupEventListeners() {
 
     // Transporte
     document.getElementById('saveTransport')?.addEventListener('click', saveTransportPreferences);
+
+    // Preferencias de optimización
+    document.getElementById('savePreferences')?.addEventListener('click', saveOptimizationPreferences);
 
     // Planificador de rutas
     document.getElementById('calculateRoute')?.addEventListener('click', calculateOptimalRoute);
@@ -1332,7 +1408,8 @@ function addTask(e) {
         assignedTime: null,
         lat: null,
         lng: null,
-        status: 'active'  // active, pending, archived
+        status: 'active',  // active, pending, archived
+        isFixed: document.getElementById('taskIsFixed')?.checked || false  // Nueva propiedad para tareas fijas
     };
 
     // Intentar geocodificar la dirección si se proporcionó
@@ -1603,13 +1680,293 @@ async function findPlacesInRoute(task1Id, task2Id, placeType = 'supermercado') {
 }
 
 // Optimizar orden de tareas del día con tráfico
+// Asignar tareas a espacios disponibles evitando conflictos
+function assignTasksToAvailableSlots(tasks, dateStr) {
+    const schedPrefs = state.preferences.scheduling;
+    const [prefStartHour, prefStartMinute] = schedPrefs.preferredStartTime.split(':').map(Number);
+    const [prefEndHour, prefEndMinute] = schedPrefs.preferredEndTime.split(':').map(Number);
+    const [workStartHour, workStartMinute] = state.workSchedule.start.split(':').map(Number);
+    const [workEndHour, workEndMinute] = state.workSchedule.end.split(':').map(Number);
+
+    const [day, month, year] = dateStr.split('-');
+    const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+    const isWeekday = date.getDay() >= 1 && date.getDay() <= 5;
+
+    // Obtener tareas fijas del mismo día para evitar conflictos
+    const fixedTasks = state.tasks.filter(t =>
+        t.assignedDate === dateStr &&
+        t.isFixed &&
+        t.assignedTime &&
+        t.status === 'active'
+    ).map(t => {
+        const [hour, minute] = t.assignedTime.split(':').map(Number);
+        const start = new Date(date);
+        start.setHours(hour, minute, 0, 0);
+        const end = new Date(start.getTime() + t.duration * 60 * 60000);
+        return { start, end, task: t };
+    });
+
+    // Definir bloques de tiempo disponible
+    const availableSlots = [];
+
+    // Slot 1: Desde hora preferida hasta inicio de trabajo (si es día laboral)
+    if (isWeekday) {
+        const morningStart = new Date(date);
+        morningStart.setHours(prefStartHour, prefStartMinute, 0, 0);
+        const morningEnd = new Date(date);
+        morningEnd.setHours(workStartHour, workStartMinute, 0, 0);
+
+        if (morningEnd > morningStart) {
+            availableSlots.push({ start: morningStart, end: morningEnd });
+        }
+    }
+
+    // Slot 2: Después del trabajo hasta hora preferida de fin (si es día laboral)
+    if (isWeekday) {
+        const eveningStart = new Date(date);
+        eveningStart.setHours(workEndHour, workEndMinute, 0, 0);
+        const eveningEnd = new Date(date);
+        eveningEnd.setHours(prefEndHour, prefEndMinute, 0, 0);
+
+        if (eveningEnd > eveningStart) {
+            availableSlots.push({ start: eveningStart, end: eveningEnd });
+        }
+    }
+
+    // Si no es día laboral, todo el día está disponible
+    if (!isWeekday) {
+        const dayStart = new Date(date);
+        dayStart.setHours(prefStartHour, prefStartMinute, 0, 0);
+        const dayEnd = new Date(date);
+        dayEnd.setHours(prefEndHour, prefEndMinute, 0, 0);
+        availableSlots.push({ start: dayStart, end: dayEnd });
+    }
+
+    // Función auxiliar para verificar si un rango de tiempo se superpone con tareas fijas
+    const hasConflictWithFixed = (start, end) => {
+        return fixedTasks.some(fixed =>
+            (start < fixed.end && end > fixed.start)
+        );
+    };
+
+    // Función para encontrar el siguiente tiempo disponible después de un conflicto
+    const findNextAvailableTime = (currentTime, slotEnd) => {
+        for (const fixed of fixedTasks) {
+            if (currentTime < fixed.end && currentTime >= fixed.start) {
+                // Estamos dentro de una tarea fija, mover al final de ella
+                return new Date(fixed.end.getTime() + schedPrefs.breakDuration * 60000);
+            }
+        }
+        return currentTime;
+    };
+
+    // Asignar tareas a slots disponibles
+    const assigned = [];
+    const overflow = [];
+    let currentSlotIndex = 0;
+    let currentTime = availableSlots[currentSlotIndex] ? new Date(availableSlots[currentSlotIndex].start) : null;
+
+    for (const task of tasks) {
+        if (currentSlotIndex >= availableSlots.length) {
+            overflow.push(task);
+            continue;
+        }
+
+        const taskDurationMinutes = task.duration * 60 + schedPrefs.breakDuration;
+        let attempts = 0;
+        const maxAttempts = 10;
+        let placed = false;
+
+        while (!placed && currentSlotIndex < availableSlots.length && attempts < maxAttempts) {
+            attempts++;
+
+            // Verificar si estamos dentro del slot actual
+            if (currentTime < availableSlots[currentSlotIndex].start) {
+                currentTime = new Date(availableSlots[currentSlotIndex].start);
+            }
+
+            // Buscar siguiente tiempo disponible sin conflictos
+            currentTime = findNextAvailableTime(currentTime, availableSlots[currentSlotIndex].end);
+
+            const taskEnd = new Date(currentTime.getTime() + taskDurationMinutes * 60000);
+
+            // Verificar si cabe en el slot actual y no tiene conflictos con tareas fijas
+            if (taskEnd <= availableSlots[currentSlotIndex].end && !hasConflictWithFixed(currentTime, taskEnd)) {
+                task.assignedTime = `${String(currentTime.getHours()).padStart(2, '0')}:${String(currentTime.getMinutes()).padStart(2, '0')}`;
+                assigned.push(task);
+                currentTime = taskEnd;
+                placed = true;
+            } else if (taskEnd > availableSlots[currentSlotIndex].end) {
+                // No cabe en este slot, intentar el siguiente
+                currentSlotIndex++;
+                if (currentSlotIndex < availableSlots.length) {
+                    currentTime = new Date(availableSlots[currentSlotIndex].start);
+                }
+            } else {
+                // Hay conflicto con tarea fija, avanzar después de la tarea fija
+                const conflictingFixed = fixedTasks.find(fixed =>
+                    currentTime < fixed.end && taskEnd > fixed.start
+                );
+                if (conflictingFixed) {
+                    currentTime = new Date(conflictingFixed.end.getTime() + schedPrefs.breakDuration * 60000);
+                }
+            }
+        }
+
+        if (!placed) {
+            overflow.push(task);
+        }
+    }
+
+    return { assigned, overflow };
+}
+
+// Mostrar sugerencias para tareas que no cupieron
+function showOverflowSuggestions(overflowTasks, originalDateStr) {
+    if (overflowTasks.length === 0) return;
+
+    const [day, month, year] = originalDateStr.split('-');
+    const originalDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+
+    // Generar sugerencias de días alternativos
+    const suggestions = [];
+    for (let i = 1; i <= 7; i++) {
+        const altDate = new Date(originalDate);
+        altDate.setDate(altDate.getDate() + i);
+        const altDateStr = formatDateToString(altDate);
+
+        // Calcular capacidad disponible en ese día
+        const capacity = calculateAvailableCapacity(altDateStr);
+        const requiredTime = overflowTasks.reduce((sum, t) => sum + t.duration, 0);
+
+        suggestions.push({
+            date: altDate,
+            dateStr: altDateStr,
+            capacity: capacity,
+            canFit: capacity >= requiredTime,
+            dayName: ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'][altDate.getDay()]
+        });
+    }
+
+    // Filtrar sugerencias viables
+    const viableSuggestions = suggestions.filter(s => s.canFit).slice(0, 3);
+
+    // Mostrar modal con sugerencias
+    showOverflowModal(overflowTasks, viableSuggestions, originalDateStr);
+}
+
+// Mostrar modal de desbordamiento
+function showOverflowModal(overflowTasks, suggestions, originalDateStr) {
+    const modal = document.getElementById('overflowModal');
+    const tasksList = document.getElementById('overflowTasksList');
+    const suggestionsList = document.getElementById('overflowSuggestionsList');
+
+    // Renderizar tareas que no cupieron
+    tasksList.innerHTML = overflowTasks.map(task => `
+        <div class="overflow-task-item priority-${escapeHtml(task.priority)}">
+            <div class="task-name">${escapeHtml(task.name)}</div>
+            <div class="task-details">
+                <span>⏱️ ${escapeHtml(task.duration)}h</span>
+                <span>📍 ${escapeHtml(task.location || 'Sin ubicación')}</span>
+            </div>
+        </div>
+    `).join('');
+
+    // Renderizar sugerencias de días alternativos
+    if (suggestions.length === 0) {
+        suggestionsList.innerHTML = '<p class="no-suggestions">No hay días disponibles en la próxima semana. Considera ajustar tus preferencias de horario.</p>';
+    } else {
+        suggestionsList.innerHTML = suggestions.map(sugg => `
+            <div class="suggestion-card ${sugg.canFit ? 'suggestion-viable' : 'suggestion-tight'}">
+                <div class="suggestion-header">
+                    <span class="suggestion-day">${escapeHtml(sugg.dayName)}</span>
+                    <span class="suggestion-date">${formatDate(sugg.date)}</span>
+                </div>
+                <div class="suggestion-capacity">
+                    <span class="capacity-label">Tiempo disponible:</span>
+                    <span class="capacity-value">${sugg.capacity.toFixed(1)}h</span>
+                </div>
+                <button class="btn btn-primary btn-sm" onclick="moveOverflowTasks('${escapeHtml(sugg.dateStr)}')">
+                    Mover aquí
+                </button>
+            </div>
+        `).join('');
+    }
+
+    modal.removeAttribute('hidden');
+    modal.setAttribute('aria-hidden', 'false');
+
+    // Store overflow tasks for later use
+    window._overflowTasks = overflowTasks;
+}
+
+// Cerrar modal de desbordamiento
+function closeOverflowModal() {
+    const modal = document.getElementById('overflowModal');
+    modal.setAttribute('hidden', '');
+    modal.setAttribute('aria-hidden', 'true');
+    window._overflowTasks = null;
+}
+
+// Mover tareas de desbordamiento a un día alternativo
+function moveOverflowTasks(targetDateStr) {
+    if (!window._overflowTasks || window._overflowTasks.length === 0) return;
+
+    // Reasignar fecha a todas las tareas de desbordamiento
+    window._overflowTasks.forEach(task => {
+        task.assignedDate = targetDateStr;
+    });
+
+    // Optimizar el nuevo día
+    closeOverflowModal();
+    optimizeDayRoute(targetDateStr);
+}
+
+// Calcular capacidad disponible en horas para un día específico
+function calculateAvailableCapacity(dateStr) {
+    const [day, month, year] = dateStr.split('-');
+    const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+    const isWeekday = date.getDay() >= 1 && date.getDay() <= 5;
+
+    const schedPrefs = state.preferences.scheduling;
+    const [prefStartHour, prefStartMinute] = schedPrefs.preferredStartTime.split(':').map(Number);
+    const [prefEndHour, prefEndMinute] = schedPrefs.preferredEndTime.split(':').map(Number);
+    const [workStartHour, workStartMinute] = state.workSchedule.start.split(':').map(Number);
+    const [workEndHour, workEndMinute] = state.workSchedule.end.split(':').map(Number);
+
+    let totalMinutes = 0;
+
+    if (isWeekday) {
+        // Mañana: desde prefStart hasta workStart
+        const morningMinutes = (workStartHour * 60 + workStartMinute) - (prefStartHour * 60 + prefStartMinute);
+        if (morningMinutes > 0) totalMinutes += morningMinutes;
+
+        // Tarde: desde workEnd hasta prefEnd
+        const eveningMinutes = (prefEndHour * 60 + prefEndMinute) - (workEndHour * 60 + workEndMinute);
+        if (eveningMinutes > 0) totalMinutes += eveningMinutes;
+    } else {
+        // Fin de semana: todo el día disponible
+        totalMinutes = (prefEndHour * 60 + prefEndMinute) - (prefStartHour * 60 + prefStartMinute);
+    }
+
+    // Restar tiempo ya ocupado por tareas existentes
+    const existingTasks = state.tasks.filter(t => t.assignedDate === dateStr && t.assignedTime);
+    const occupiedMinutes = existingTasks.reduce((sum, t) => sum + (t.duration * 60), 0);
+
+    return Math.max(0, (totalMinutes - occupiedMinutes) / 60);
+}
+
 async function optimizeDayRoute(dateStr) {
-    const dayTasks = state.tasks.filter(t =>
+    // Separar tareas fijas y flexibles
+    const allDayTasks = state.tasks.filter(t =>
         t.assignedDate === dateStr &&
         t.status === 'active' &&
         t.lat &&
         t.lng
     );
+
+    const fixedTasks = allDayTasks.filter(t => t.isFixed);
+    const dayTasks = allDayTasks.filter(t => !t.isFixed);
 
     if (dayTasks.length < 2) {
         showNotification('Necesitas al menos 2 tareas con ubicación', 'info');
@@ -1637,13 +1994,14 @@ async function optimizeDayRoute(dateStr) {
             'best_guess'
         );
 
-        // Algoritmo simple: vecino más cercano
+        // Algoritmo mejorado: vecino más cercano con prioridades y preferencias
         const visited = new Set();
         const optimizedOrder = [];
         let currentPos = 0; // Empezar desde casa
+        const prefs = state.preferences.optimization;
 
         while (optimizedOrder.length < dayTasks.length) {
-            let minDuration = Infinity;
+            let bestScore = -Infinity;
             let nextTaskIndex = -1;
 
             dayTasks.forEach((task, index) => {
@@ -1652,8 +2010,39 @@ async function optimizeDayRoute(dateStr) {
                 const duration = matrixData.rows[currentPos].elements[index].duration_in_traffic?.value ||
                                matrixData.rows[currentPos].elements[index].duration.value;
 
-                if (duration < minDuration) {
-                    minDuration = duration;
+                // Calcular score basado en múltiples factores
+                let score = 0;
+
+                // 1. Minimizar tiempo de viaje (invertir para que menos tiempo = mejor score)
+                if (prefs.minimizeTravel) {
+                    score += (1 / (duration + 1)) * 10000; // Normalizar
+                }
+
+                // 2. Peso por prioridad
+                const priorityWeight = prefs.priorityWeights[task.priority] || prefs.priorityWeights.normal;
+                score += priorityWeight * 1000;
+
+                // 3. Bonus por deadline cercano
+                if (prefs.respectDeadlines && task.deadline) {
+                    const daysUntilDeadline = Math.floor((new Date(task.deadline) - new Date()) / (1000 * 60 * 60 * 24));
+                    if (daysUntilDeadline <= 2) {
+                        score += 5000; // Alta prioridad para deadlines cercanos
+                    } else if (daysUntilDeadline <= 7) {
+                        score += 2000;
+                    }
+                }
+
+                // 4. Clustering de ubicaciones cercanas
+                if (prefs.locationClustering && optimizedOrder.length > 0) {
+                    const lastTask = optimizedOrder[optimizedOrder.length - 1];
+                    const distance = calculateDistance(lastTask.lat, lastTask.lng, task.lat, task.lng);
+                    if (distance <= prefs.clusterRadius) {
+                        score += 1500; // Bonus por proximidad
+                    }
+                }
+
+                if (score > bestScore) {
+                    bestScore = score;
                     nextTaskIndex = index;
                 }
             });
@@ -1665,20 +2054,20 @@ async function optimizeDayRoute(dateStr) {
             currentPos = nextTaskIndex + 1; // +1 porque origins incluye home
         }
 
-        // Reasignar horarios
-        let currentTime = new Date(dateStr);
-        currentTime.setHours(9, 0, 0, 0); // Empezar a las 9 AM
-
-        optimizedOrder.forEach(task => {
-            task.assignedTime = `${String(currentTime.getHours()).padStart(2, '0')}:${String(currentTime.getMinutes()).padStart(2, '0')}`;
-            currentTime.setMinutes(currentTime.getMinutes() + (task.duration * 60) + 15); // +15 min de viaje
-        });
+        // Reasignar horarios evitando conflictos con horario laboral
+        const result = assignTasksToAvailableSlots(optimizedOrder, dateStr);
 
         saveToStorage();
         renderCalendar();
         renderTasks();
 
-        showNotification(`✅ Ruta optimizada: ${optimizedOrder.length} tareas reorganizadas`, 'success');
+        // Mostrar resultado con información sobre tareas que no cupieron
+        if (result.overflow.length > 0) {
+            showNotification(`✅ ${result.assigned.length} tareas asignadas. ${result.overflow.length} tareas necesitan reprogramarse`, 'warning');
+            showOverflowSuggestions(result.overflow, dateStr);
+        } else {
+            showNotification(`✅ Ruta optimizada: ${result.assigned.length} tareas reorganizadas`, 'success');
+        }
 
     } catch (error) {
         console.error('[Optimize Route] Error:', error);
@@ -2432,21 +2821,47 @@ function renderCalendar() {
         fullCalendar = new FullCalendar.Calendar(calendarEl, {
             initialView: 'timeGridWeek',
             locale: 'es',
-            headerToolbar: {
-                left: 'prev,next today',
-                center: 'title',
-                right: 'dayGridMonth,timeGridWeek,timeGridDay'
-            },
-            slotMinTime: '06:00:00',
-            slotMaxTime: '23:00:00',
-            allDaySlot: true,
+            firstDay: 1,  // 1 = Lunes (0 = Domingo)
+            headerToolbar: false,
+            slotMinTime: '07:00:00',
+            slotMaxTime: '22:00:00',
+            allDaySlot: false,
             nowIndicator: true,
-            navLinks: true,
+            navLinks: false,
             selectable: true,
             selectMirror: true,
             editable: true,
             dayMaxEvents: true,
             height: 'auto',
+            slotDuration: '01:00:00',
+            slotLabelInterval: '01:00:00',
+            slotLabelFormat: {
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: false
+            },
+            eventTimeFormat: {
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: false
+            },
+            businessHours: {
+                daysOfWeek: [1, 2, 3, 4, 5],
+                startTime: '09:00',
+                endTime: '18:00'
+            },
+            views: {
+                listWeek: {
+                    type: 'list',
+                    duration: { days: 5 },
+                    buttonText: 'Lista 5 días',
+                    listDayFormat: {
+                        weekday: 'long',
+                        day: 'numeric',
+                        month: 'long'
+                    }
+                }
+            },
 
             // Cuando se selecciona un rango de tiempo
             select: function(info) {
@@ -2471,6 +2886,35 @@ function renderCalendar() {
                 }
             },
 
+            // Mostrar tooltip con información de ocupación
+            eventDidMount: function(info) {
+                if (info.event.id.startsWith('task-') && info.event.extendedProps.busyness) {
+                    const busyness = info.event.extendedProps.busyness;
+                    const isFixed = info.event.extendedProps.isFixed;
+
+                    let tooltipContent = `<strong>${info.event.title}</strong><br>`;
+                    tooltipContent += `📍 ${info.event.extendedProps.location}<br>`;
+                    tooltipContent += `<br><strong>Nivel de ocupación:</strong><br>`;
+                    tooltipContent += `${busyness.description} (${busyness.percentage}%)<br>`;
+
+                    if (isFixed) {
+                        tooltipContent += `<br>📌 <em>Tarea fija</em>`;
+                    }
+
+                    info.el.setAttribute('title', '');
+                    info.el.setAttribute('data-tooltip', tooltipContent);
+
+                    // Agregar evento hover
+                    info.el.addEventListener('mouseenter', function(e) {
+                        showEventTooltip(e, tooltipContent);
+                    });
+
+                    info.el.addEventListener('mouseleave', function() {
+                        hideEventTooltip();
+                    });
+                }
+            },
+
             // Cuando se mueve un evento
             eventDrop: function(info) {
                 updateTaskDateTime(info.event, info.event.start, info.event.end);
@@ -2485,6 +2929,14 @@ function renderCalendar() {
         });
 
         fullCalendar.render();
+
+        // Forzar actualización de tamaño después de renderizar
+        setTimeout(() => {
+            if (fullCalendar) {
+                fullCalendar.updateSize();
+            }
+        }, 100);
+
         console.log('FullCalendar inicializado correctamente');
     } catch (error) {
         console.error('Error al inicializar FullCalendar:', error);
@@ -2517,9 +2969,31 @@ function getFullCalendarEvents() {
             // Agregar indicador de estado si es pendiente
             const statusIcon = task.status === 'pending' ? '⏸️ ' : '';
 
+            // Estimar nivel de ocupación del lugar
+            let busynessInfo = null;
+            let busynessIcon = '';
+            if (task.location && window.GoogleMapsAPI) {
+                // Detectar tipo de lugar basado en el nombre de la ubicación
+                const locationLower = task.location.toLowerCase();
+                let placeType = 'default';
+                if (locationLower.includes('super') || locationLower.includes('mercado')) placeType = 'supermercado';
+                else if (locationLower.includes('farma')) placeType = 'farmacia';
+                else if (locationLower.includes('banco') || locationLower.includes('cajero')) placeType = 'banco';
+                else if (locationLower.includes('gasolinera') || locationLower.includes('gasolina')) placeType = 'gasolinera';
+                else if (locationLower.includes('restaurante') || locationLower.includes('comida')) placeType = 'restaurante';
+
+                busynessInfo = window.GoogleMapsAPI.estimateBusyness(placeType, startDate);
+
+                // Iconos de ocupación
+                if (busynessInfo.level === 'high') busynessIcon = '🔴 ';
+                else if (busynessInfo.level === 'medium-high') busynessIcon = '🟠 ';
+                else if (busynessInfo.level === 'medium') busynessIcon = '🟡 ';
+                else if (busynessInfo.level === 'low') busynessIcon = '🟢 ';
+            }
+
             events.push({
                 id: `task-${task.id}`,
-                title: `${statusIcon}${task.name}`,
+                title: `${statusIcon}${busynessIcon}${task.name}`,
                 start: startDate,
                 end: endDate,
                 classNames: [`priority-${task.priority}`, task.status === 'pending' ? 'task-pending' : ''],
@@ -2527,7 +3001,9 @@ function getFullCalendarEvents() {
                     taskId: task.id,
                     location: task.location,
                     priority: task.priority,
-                    status: task.status
+                    status: task.status,
+                    busyness: busynessInfo,
+                    isFixed: task.isFixed || false
                 }
             });
         }
@@ -2603,6 +3079,43 @@ function updateFullCalendarEvents() {
     fullCalendar.addEventSource(events);
 }
 
+// Actualizar botón activo del selector de vista
+function updateViewSwitcherActive(activeId) {
+    document.querySelectorAll('.btn-view').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    document.getElementById(activeId)?.classList.add('active');
+}
+
+// Mostrar tooltip personalizado para eventos
+function showEventTooltip(event, content) {
+    // Remover tooltip anterior si existe
+    hideEventTooltip();
+
+    const tooltip = document.createElement('div');
+    tooltip.id = 'event-tooltip';
+    tooltip.className = 'event-tooltip';
+    tooltip.innerHTML = content;
+
+    document.body.appendChild(tooltip);
+
+    // Posicionar tooltip
+    const x = event.clientX + 10;
+    const y = event.clientY + 10;
+
+    tooltip.style.left = x + 'px';
+    tooltip.style.top = y + 'px';
+    tooltip.style.opacity = '1';
+}
+
+// Ocultar tooltip
+function hideEventTooltip() {
+    const tooltip = document.getElementById('event-tooltip');
+    if (tooltip) {
+        tooltip.remove();
+    }
+}
+
 // Actualizar fecha/hora de una tarea cuando se mueve en el calendario
 function updateTaskDateTime(event, newStart, newEnd) {
     if (!event.id.startsWith('task-')) return;
@@ -2640,14 +3153,24 @@ function formatMinutesToTime(minutes) {
 
 // Formato DD-MM-YYYY para mostrar
 function formatDate(date) {
-    if (!date) return '';
+    if (!date || date === null || date === undefined || date === '') {
+        return '';
+    }
+
+    // Si es string, verificar formato y parsear
     if (typeof date === 'string') {
+        // Si ya tiene formato DD-MM-YYYY, devolverlo
+        if (/^\d{2}-\d{2}-\d{4}$/.test(date)) {
+            return date;
+        }
         date = new Date(date);
     }
-    if (isNaN(date.getTime())) {
-        console.warn('⚠️ Fecha inválida ignorada:', date);
-        return 'Sin fecha';
+
+    // Verificar si es una fecha válida
+    if (!(date instanceof Date) || isNaN(date.getTime())) {
+        return '';
     }
+
     const day = String(date.getDate()).padStart(2, '0');
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const year = date.getFullYear();
@@ -2656,14 +3179,18 @@ function formatDate(date) {
 
 // Formato DD-MM-YYYY abreviado con día de semana
 function formatDateShort(date) {
-    if (!date) return '';
+    if (!date || date === null || date === undefined || date === '') {
+        return '';
+    }
+
     if (typeof date === 'string') {
         date = new Date(date);
     }
-    if (isNaN(date.getTime())) {
-        console.warn('⚠️ Fecha inválida ignorada:', date);
-        return 'Sin fecha';
+
+    if (!(date instanceof Date) || isNaN(date.getTime())) {
+        return '';
     }
+
     const days = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
     const day = String(date.getDate()).padStart(2, '0');
     const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -2844,6 +3371,55 @@ function getModeLabel(mode) {
         walking: '🚶 A pie'
     };
     return labels[mode] || mode;
+}
+
+// ===== PREFERENCIAS DE OPTIMIZACIÓN =====
+function saveOptimizationPreferences() {
+    // Guardar preferencias de programación
+    state.preferences.scheduling.preferredStartTime = document.getElementById('prefStartTime').value;
+    state.preferences.scheduling.preferredEndTime = document.getElementById('prefEndTime').value;
+    state.preferences.scheduling.breakDuration = parseInt(document.getElementById('breakDuration').value);
+    state.preferences.scheduling.maximumDailyTasks = parseInt(document.getElementById('maxDailyTasks').value);
+
+    // Guardar pesos de prioridad
+    state.preferences.optimization.priorityWeights.urgent = parseFloat(document.getElementById('weightUrgent').value);
+    state.preferences.optimization.priorityWeights.high = parseFloat(document.getElementById('weightHigh').value);
+    state.preferences.optimization.priorityWeights.normal = parseFloat(document.getElementById('weightNormal').value);
+    state.preferences.optimization.priorityWeights.low = parseFloat(document.getElementById('weightLow').value);
+
+    // Guardar opciones de optimización
+    state.preferences.optimization.locationClustering = document.getElementById('locationClustering').checked;
+    state.preferences.optimization.clusterRadius = parseInt(document.getElementById('clusterRadius').value);
+    state.preferences.optimization.minimizeTravel = document.getElementById('minimizeTravel').checked;
+    state.preferences.optimization.respectDeadlines = document.getElementById('respectDeadlines').checked;
+
+    saveToStorage();
+
+    const infoEl = document.getElementById('preferencesInfo');
+    infoEl.className = 'info-box success';
+    infoEl.textContent = `✅ Preferencias de optimización guardadas correctamente`;
+
+    showNotification('Preferencias guardadas', 'success');
+}
+
+function loadOptimizationPreferences() {
+    // Cargar preferencias de programación
+    document.getElementById('prefStartTime').value = state.preferences.scheduling.preferredStartTime;
+    document.getElementById('prefEndTime').value = state.preferences.scheduling.preferredEndTime;
+    document.getElementById('breakDuration').value = state.preferences.scheduling.breakDuration;
+    document.getElementById('maxDailyTasks').value = state.preferences.scheduling.maximumDailyTasks;
+
+    // Cargar pesos de prioridad
+    document.getElementById('weightUrgent').value = state.preferences.optimization.priorityWeights.urgent;
+    document.getElementById('weightHigh').value = state.preferences.optimization.priorityWeights.high;
+    document.getElementById('weightNormal').value = state.preferences.optimization.priorityWeights.normal;
+    document.getElementById('weightLow').value = state.preferences.optimization.priorityWeights.low;
+
+    // Cargar opciones de optimización
+    document.getElementById('locationClustering').checked = state.preferences.optimization.locationClustering;
+    document.getElementById('clusterRadius').value = state.preferences.optimization.clusterRadius;
+    document.getElementById('minimizeTravel').checked = state.preferences.optimization.minimizeTravel;
+    document.getElementById('respectDeadlines').checked = state.preferences.optimization.respectDeadlines;
 }
 
 // ===== PLANIFICADOR DE RUTAS =====

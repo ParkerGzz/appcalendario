@@ -108,34 +108,72 @@
 
                 <!-- Calendar View -->
                 <section id="viewCalendar" class="content-view">
-                    <div class="calendar-header">
-                        <h2>📆 Calendario de Actividades</h2>
-                        <div style="display: flex; gap: 8px;">
-                            <button id="optimizeTodayRoute" class="btn btn-success" title="Optimizar ruta de hoy con tráfico" onclick="optimizeTodayRoute()">
-                                🚗 Optimizar hoy
-                            </button>
-                            <button id="addTaskFromCalendar" class="btn btn-primary btn-add-task" title="Añadir nueva tarea">
-                                ➕ Nueva Tarea
-                            </button>
-                        </div>
-                    </div>
-
                     <div class="card calendar-card">
-                        <div id="fullcalendar" class="fullcalendar-container"></div>
-                        <div class="calendar-legend">
-                            <span class="legend-item">
-                                <span class="legend-dot" style="background: var(--brand)"></span>
-                                Tareas asignadas
-                            </span>
-                            <span class="legend-item">
-                                <span class="legend-dot" style="background: var(--ok)"></span>
-                                Trabajo
-                            </span>
-                            <span class="legend-item">
-                                <span class="legend-dot" style="background: var(--warn)"></span>
-                                Urgente
-                            </span>
-                            <span class="legend-item">Click en evento para ver detalles / arrastre para mover</span>
+                        <div class="calendar-card-header">
+                            <div class="calendar-header-content">
+                                <div class="calendar-actions-left">
+                                    <button id="addTaskFromCalendar" class="btn btn-primary btn-sm calendar-btn">
+                                        <span class="btn-icon-inline">➕</span>
+                                        Nueva tarea
+                                    </button>
+                                    <div class="calendar-nav-controls">
+                                        <button id="calendarPrev" class="btn-calendar-nav" title="Anterior">
+                                            <span>‹</span>
+                                        </button>
+                                        <button id="calendarToday" class="btn-calendar-today" title="Ir a hoy">
+                                            Hoy
+                                        </button>
+                                        <button id="calendarNext" class="btn-calendar-nav" title="Siguiente">
+                                            <span>›</span>
+                                        </button>
+                                    </div>
+                                    <div class="calendar-view-switcher">
+                                        <button id="viewListWeek" class="btn-view" title="Lista de 5 días">
+                                            <span>☰</span>
+                                        </button>
+                                        <button id="viewTimeDay" class="btn-view" title="Vista día">
+                                            <span>📅</span>
+                                        </button>
+                                        <button id="viewTimeWeek" class="btn-view active" title="Vista semana">
+                                            <span>📆</span>
+                                        </button>
+                                    </div>
+                                    <button id="optimizeTodayRoute" class="btn btn-success btn-sm calendar-btn" title="Optimizar ruta de hoy con tráfico" onclick="optimizeTodayRoute()">
+                                        <span class="btn-icon-inline">⚡</span>
+                                        Optimizar
+                                    </button>
+                                </div>
+
+                                <div class="calendar-legend-header">
+                                    <span class="legend-label">Prioridades:</span>
+                                    <div class="legend-items">
+                                        <span class="legend-badge">
+                                            <span class="legend-dot priority-work"></span>
+                                            <span class="legend-text">Trabajo</span>
+                                        </span>
+                                        <span class="legend-badge">
+                                            <span class="legend-dot priority-urgent"></span>
+                                            <span class="legend-text">Urgente</span>
+                                        </span>
+                                        <span class="legend-badge">
+                                            <span class="legend-dot priority-important"></span>
+                                            <span class="legend-text">Importante</span>
+                                        </span>
+                                        <span class="legend-badge">
+                                            <span class="legend-dot priority-personal"></span>
+                                            <span class="legend-text">Personal</span>
+                                        </span>
+                                        <span class="legend-badge">
+                                            <span class="legend-dot priority-neutral"></span>
+                                            <span class="legend-text">Neutro</span>
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="calendar-card-content">
+                            <div id="fullcalendar" class="fullcalendar-container"></div>
                         </div>
                     </div>
                 </section>
@@ -199,6 +237,18 @@
                                 <div class="input-group">
                                     <label for="taskWindowEnd">Ventana fin (opcional):</label>
                                     <input type="text" id="taskWindowEnd" placeholder="DD-MM-YYYY" maxlength="10">
+                                </div>
+                            </div>
+
+                            <div class="form-row">
+                                <div class="input-group">
+                                    <label class="checkbox-label" style="margin-top: 8px;">
+                                        <input type="checkbox" id="taskIsFixed">
+                                        <span>📌 Tarea fija (no se puede mover durante la optimización)</span>
+                                    </label>
+                                    <small style="margin-left: 28px; display: block; margin-top: 4px;">
+                                        Las tareas fijas mantienen su horario asignado y no se reorganizan automáticamente
+                                    </small>
                                 </div>
                             </div>
 
@@ -309,6 +359,77 @@
                             <button id="saveTransport" class="btn btn-primary">Guardar Preferencias</button>
                         </div>
                         <div id="transportInfo" class="info-box"></div>
+                    </div>
+
+                    <div class="card">
+                        <h3>🎯 Preferencias de Optimización</h3>
+
+                        <div class="preferences-section">
+                            <h4>Programación de Tareas</h4>
+                            <div class="input-group">
+                                <label for="prefStartTime">Hora de inicio preferida:</label>
+                                <input type="time" id="prefStartTime" value="09:00">
+                                <small>Hora a la que prefieres comenzar tus tareas del día</small>
+                            </div>
+                            <div class="input-group">
+                                <label for="prefEndTime">Hora de fin preferida:</label>
+                                <input type="time" id="prefEndTime" value="18:00">
+                                <small>Hora límite para finalizar actividades</small>
+                            </div>
+                            <div class="input-group">
+                                <label for="breakDuration">Tiempo de descanso entre tareas (minutos):</label>
+                                <input type="number" id="breakDuration" value="15" min="0" max="60" step="5">
+                                <small>Tiempo de margen/descanso entre actividades consecutivas</small>
+                            </div>
+                            <div class="input-group">
+                                <label for="maxDailyTasks">Máximo de tareas por día:</label>
+                                <input type="number" id="maxDailyTasks" value="8" min="1" max="20">
+                            </div>
+                        </div>
+
+                        <div class="preferences-section">
+                            <h4>Pesos de Prioridad</h4>
+                            <small>Define qué tan importante es cada nivel de prioridad en la optimización</small>
+                            <div class="input-group">
+                                <label for="weightUrgent">🔴 Urgente:</label>
+                                <input type="number" id="weightUrgent" value="5.0" min="1" max="10" step="0.5">
+                            </div>
+                            <div class="input-group">
+                                <label for="weightHigh">🟡 Alta:</label>
+                                <input type="number" id="weightHigh" value="3.0" min="1" max="10" step="0.5">
+                            </div>
+                            <div class="input-group">
+                                <label for="weightNormal">🟢 Normal:</label>
+                                <input type="number" id="weightNormal" value="2.0" min="1" max="10" step="0.5">
+                            </div>
+                            <div class="input-group">
+                                <label for="weightLow">🔵 Baja:</label>
+                                <input type="number" id="weightLow" value="1.0" min="1" max="10" step="0.5">
+                            </div>
+                        </div>
+
+                        <div class="preferences-section">
+                            <h4>Opciones de Optimización</h4>
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="locationClustering" checked>
+                                <span>📍 Agrupar tareas cercanas</span>
+                            </label>
+                            <div class="input-group" style="margin-left: 25px;">
+                                <label for="clusterRadius">Radio de agrupación (metros):</label>
+                                <input type="number" id="clusterRadius" value="2000" min="500" max="10000" step="500">
+                            </div>
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="minimizeTravel" checked>
+                                <span>🚗 Minimizar tiempo de viaje</span>
+                            </label>
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="respectDeadlines" checked>
+                                <span>⏰ Respetar fechas límite</span>
+                            </label>
+                        </div>
+
+                        <button id="savePreferences" class="btn btn-success btn-large">Guardar Preferencias</button>
+                        <div id="preferencesInfo" class="info-box"></div>
                     </div>
 
                     <div class="card">
@@ -616,6 +737,37 @@
                     <button id="btnApplyRoute" class="btn btn-success" onclick="applySelectedRoute()" style="display: none;">
                         ✅ Aplicar Esta Ruta
                     </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Desbordamiento de Tareas -->
+    <div id="overflowModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="overflowModalTitle" aria-hidden="true" hidden tabindex="-1">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h2 id="overflowModalTitle">⚠️ Tareas que No Caben en el Día Seleccionado</h2>
+                <button type="button" class="close" aria-label="Cerrar modal de desbordamiento" onclick="closeOverflowModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="overflow-info">
+                    <p>Las siguientes tareas no pudieron ser asignadas porque el día está lleno:</p>
+                </div>
+
+                <div id="overflowTasksList" class="overflow-tasks-list">
+                    <!-- Se llenará dinámicamente -->
+                </div>
+
+                <div class="overflow-suggestions">
+                    <h3>📅 Días Alternativos Sugeridos</h3>
+                    <p>Estos días tienen suficiente tiempo disponible para las tareas pendientes:</p>
+                    <div id="overflowSuggestionsList" class="suggestions-grid">
+                        <!-- Se llenará dinámicamente -->
+                    </div>
+                </div>
+
+                <div class="modal-actions">
+                    <button class="btn btn-secondary" onclick="closeOverflowModal()">Cerrar</button>
                 </div>
             </div>
         </div>
