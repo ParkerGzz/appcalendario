@@ -6,8 +6,14 @@
     <title>Calendario Inteligente</title>
     <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="styles-mapa.css">
+    <link rel="stylesheet" href="styles-variables.css">
+    <link rel="stylesheet" href="styles-professional-enhancements.css">
     <!-- FullCalendar CSS -->
     <link id="fc-css" rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.css" onerror="this.onerror=null; this.href='https://unpkg.com/fullcalendar@5.11.3/main.min.css'">
+    <!-- Mobile Override - Debe ser el último para tener máxima prioridad -->
+    <link rel="stylesheet" href="styles-mobile-override.css">
+    <!-- Floating Action Button (FAB) -->
+    <link rel="stylesheet" href="styles-fab.css">
 </head>
 <body>
     <!-- Vista de Autenticación -->
@@ -58,23 +64,23 @@
             <!-- Sidebar -->
             <aside id="sidebar" class="sidebar">
                 <nav class="sidebar-nav">
-                    <a href="#" data-view="dashboard" class="nav-item active">
+                    <a href="#" data-view="dashboard" data-tooltip="Dashboard" class="nav-item active">
                         <span class="nav-icon">📊</span>
                         <span class="nav-label">Dashboard</span>
                     </a>
-                    <a href="#" data-view="calendar" class="nav-item">
+                    <a href="#" data-view="calendar" data-tooltip="Calendario" class="nav-item">
                         <span class="nav-icon">📆</span>
                         <span class="nav-label">Calendario</span>
                     </a>
-                    <a href="#" data-view="tasks" class="nav-item">
+                    <a href="#" data-view="tasks" data-tooltip="Tareas" class="nav-item">
                         <span class="nav-icon">✓</span>
                         <span class="nav-label">Tareas</span>
                     </a>
-                    <a href="#" data-view="routePlanner" class="nav-item">
+                    <a href="#" data-view="routePlanner" data-tooltip="Rutas" class="nav-item">
                         <span class="nav-icon">🗺️</span>
                         <span class="nav-label">Rutas</span>
                     </a>
-                    <a href="#" data-view="settings" class="nav-item">
+                    <a href="#" data-view="settings" data-tooltip="Configuración" class="nav-item">
                         <span class="nav-icon">⚙️</span>
                         <span class="nav-label">Configuración</span>
                     </a>
@@ -131,10 +137,10 @@
                                         <button id="viewListWeek" class="btn-view" title="Lista de 5 días">
                                             <span>☰</span>
                                         </button>
-                                        <button id="viewTimeDay" class="btn-view" title="Vista día">
+                                        <button id="viewTimeDay" class="btn-view active" title="Vista día">
                                             <span>📅</span>
                                         </button>
-                                        <button id="viewTimeWeek" class="btn-view active" title="Vista semana">
+                                        <button id="viewTimeWeek" class="btn-view" title="Vista semana">
                                             <span>📆</span>
                                         </button>
                                     </div>
@@ -202,16 +208,11 @@
                                     <label for="taskLocation">Ubicación/Lugar:</label>
                                     <input type="text" id="taskLocation" placeholder="Ej: Supermercado Centro" required autocomplete="off">
                                     <div id="taskLocationSuggestions" class="autocomplete-suggestions"></div>
+                                    <button type="button" id="selectFromMap" class="btn btn-secondary btn-sm" style="margin-top: 8px;">
+                                        📍 Seleccionar en el mapa
+                                    </button>
                                 </div>
 
-                                <div class="input-group autocomplete-wrapper">
-                                    <label for="taskAddress">Dirección específica (opcional):</label>
-                                    <input type="text" id="taskAddress" placeholder="Ej: Calle Comercio 789" autocomplete="off">
-                                    <div id="taskAddressSuggestions" class="autocomplete-suggestions"></div>
-                                </div>
-                            </div>
-
-                            <div class="form-row">
                                 <div class="input-group">
                                     <label for="taskPriority">Prioridad:</label>
                                     <select id="taskPriority" required>
@@ -221,7 +222,9 @@
                                         <option value="urgente">Urgente</option>
                                     </select>
                                 </div>
+                            </div>
 
+                            <div class="form-row">
                                 <div class="input-group">
                                     <label for="taskDeadline">Fecha límite (opcional):</label>
                                     <input type="text" id="taskDeadline" placeholder="DD-MM-YYYY" maxlength="10">
@@ -613,12 +616,9 @@
                     <label for="modalTaskLocation">Ubicación/Lugar:</label>
                     <input type="text" id="modalTaskLocation" placeholder="Ej: Supermercado Centro" required autocomplete="off">
                     <div id="modalTaskLocationSuggestions" class="autocomplete-suggestions"></div>
-                </div>
-
-                <div class="form-group autocomplete-wrapper">
-                    <label for="modalTaskAddress">Dirección específica (opcional):</label>
-                    <input type="text" id="modalTaskAddress" placeholder="Ej: Calle Comercio 789" autocomplete="off">
-                    <div id="modalTaskAddressSuggestions" class="autocomplete-suggestions"></div>
+                    <button type="button" id="selectFromMapModal" class="btn btn-secondary btn-sm" style="margin-top: 8px;">
+                        📍 Seleccionar en el mapa
+                    </button>
                 </div>
 
                 <div class="form-row">
@@ -663,6 +663,53 @@
 
     <!-- Toast Container -->
     <div id="toastContainer" class="toast-container"></div>
+
+    <!-- Modal de Selección de Ubicación en Mapa -->
+    <div id="mapPickerModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="mapPickerTitle" aria-hidden="true" hidden tabindex="-1">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h2 id="mapPickerTitle">📍 Seleccionar Ubicación en el Mapa</h2>
+                <button type="button" class="close" aria-label="Cerrar selector de mapa" onclick="closeMapPickerModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="map-picker-instructions">
+                    <p>Haz clic en el mapa para seleccionar una ubicación o busca un lugar específico.</p>
+                </div>
+                <div class="map-picker-search">
+                    <input type="text" id="mapSearchInput" class="map-search-input" placeholder="Buscar lugar o dirección..." autocomplete="off">
+                    <div id="mapSearchSuggestions" class="autocomplete-suggestions"></div>
+                </div>
+                <div style="position: relative;">
+                    <div id="mapPickerContainer" class="map-picker-container"></div>
+                    <div class="map-legend">
+                        <div class="map-legend-item">
+                            <div class="map-legend-dot red"></div>
+                            <span>Tu selección</span>
+                        </div>
+                        <div class="map-legend-item">
+                            <div class="map-legend-dot blue"></div>
+                            <span>Lugares cercanos</span>
+                        </div>
+                        <div class="map-legend-item">
+                            <div class="map-legend-dot green"></div>
+                            <span>Tus tareas</span>
+                        </div>
+                    </div>
+                </div>
+                <div id="selectedLocationInfo" class="selected-location-info" style="display: none;">
+                    <strong>Ubicación seleccionada:</strong>
+                    <p id="selectedLocationName"></p>
+                    <p id="selectedLocationCoords" style="font-size: 12px; color: var(--text-muted);"></p>
+                </div>
+                <div class="modal-actions">
+                    <button class="btn btn-secondary" onclick="closeMapPickerModal()">Cancelar</button>
+                    <button id="btnConfirmLocation" class="btn btn-success" onclick="confirmMapLocation()" disabled>
+                        ✅ Confirmar Ubicación
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- Modal de Recomendaciones de Rutas -->
     <div id="routeRecommendationsModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="routeRecommendationsTitle" aria-hidden="true" hidden tabindex="-1">
@@ -817,6 +864,16 @@
     <script src="config.js"></script>
     <script src="google-maps-api.js"></script>
     <script src="mapa-ruta.js"></script>
+    <script src="sidebar-collapse.js"></script>
+    <script src="map-picker-fixed.js"></script>
     <script src="app.js"></script>
+
+    <!-- Floating Action Button (FAB) - Solo visible en móvil -->
+    <button id="fabNewTask" class="mdc-fab fab-enter" aria-label="Nueva tarea">
+        <div class="mdc-fab__ripple"></div>
+        <span class="mdc-fab__icon">➕</span>
+    </button>
+
+    <script src="fab.js"></script>
 </body>
 </html>

@@ -1,0 +1,281 @@
+/* ============================================================
+   MOBILE OVERRIDE - Estilos con máxima prioridad para móvil
+   Este archivo garantiza que el bottom navigation funcione
+   ============================================================ */
+
+/* Móviles - Bottom Navigation Bar */
+@media screen and (max-width: 768px) {
+  /* FORZAR sidebar como bottom navigation */
+  #sidebar,
+  aside.sidebar,
+  .sidebar {
+    position: fixed !important;
+    bottom: 0 !important;
+    top: auto !important;
+    left: 0 !important;
+    right: 0 !important;
+    width: 100vw !important;
+    height: 70px !important;
+    min-height: 70px !important;
+    max-height: 70px !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    border-top: 1px solid var(--border) !important;
+    border-right: none !important;
+    border-left: none !important;
+    border-bottom: none !important;
+    box-shadow: 0 -4px 20px rgba(15, 23, 42, 0.08) !important;
+    background: white !important;
+    z-index: 9999 !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: center !important;
+  }
+
+  /* Navegación horizontal */
+  #sidebar .sidebar-nav,
+  .sidebar .sidebar-nav,
+  .sidebar-nav {
+    display: flex !important;
+    flex-direction: row !important;
+    padding: 0 8px !important;
+    height: 100% !important;
+    width: 100% !important;
+    align-items: center !important;
+    justify-content: space-around !important;
+    gap: 4px !important;
+    margin: 0 !important;
+  }
+
+  /* Items de navegación */
+  .sidebar-nav .nav-item,
+  .nav-item {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 4px !important;
+    padding: 8px 4px !important;
+    flex: 1 !important;
+    min-width: 60px !important;
+    max-width: 80px !important;
+    height: auto !important;
+    justify-content: center !important;
+    align-items: center !important;
+    text-align: center !important;
+    border-radius: 8px !important;
+    margin: 0 !important;
+  }
+
+  /* Iconos en bottom bar */
+  .nav-item .nav-icon,
+  .nav-icon {
+    font-size: 20px !important;
+    min-width: auto !important;
+    width: auto !important;
+    height: auto !important;
+    margin: 0 !important;
+  }
+
+  /* Labels visibles */
+  .nav-item .nav-label,
+  .nav-label {
+    opacity: 1 !important;
+    display: block !important;
+    visibility: visible !important;
+    font-size: 10px !important;
+    font-weight: 600 !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    line-height: 1.2 !important;
+  }
+
+  /* Indicador activo en top */
+  .nav-item::before {
+    left: 50% !important;
+    top: 0 !important;
+    bottom: auto !important;
+    right: auto !important;
+    width: 40px !important;
+    height: 3px !important;
+    transform: translateX(-50%) scaleX(0) !important;
+    border-radius: 0 0 3px 3px !important;
+  }
+
+  .nav-item.active::before,
+  .nav-item:hover::before {
+    transform: translateX(-50%) scaleX(1) !important;
+  }
+
+  /* Desactivar hover effects */
+  .nav-item:hover,
+  .nav-item.active {
+    transform: none !important;
+  }
+
+  /* Sin tooltips */
+  .nav-item::after,
+  .nav-item:hover::after {
+    display: none !important;
+    content: none !important;
+  }
+
+  /* Ajustar contenedor principal */
+  .app-container {
+    flex-direction: column !important;
+    padding-bottom: 85px !important;
+    overflow-y: auto !important;
+  }
+
+  /* Main content ocupa todo el espacio */
+  .main-content {
+    width: 100% !important;
+    flex: 1 !important;
+    padding: 12px !important;
+    overflow-y: auto !important;
+  }
+
+  /* Desactivar overlay del sidebar */
+  .sidebar-overlay {
+    display: none !important;
+  }
+
+  /* Botón toggle sidebar - ocultar en móvil */
+  #toggleSidebar {
+    display: none !important;
+  }
+
+  /* App view altura completa */
+  .app-view {
+    height: 100vh !important;
+    height: 100dvh !important; /* Dynamic viewport height para móviles */
+    overflow: hidden !important;
+  }
+
+  /* Topbar más compacto */
+  .topbar {
+    padding: 8px 12px !important;
+    height: 56px !important;
+    min-height: 56px !important;
+  }
+
+  .topbar-logo {
+    width: 28px !important;
+    height: 28px !important;
+  }
+
+  .topbar-title {
+    font-size: 14px !important;
+  }
+
+  .user-avatar {
+    width: 28px !important;
+    height: 28px !important;
+  }
+
+  .user-email {
+    display: none !important;
+  }
+
+  /* Botones del topbar más pequeños */
+  .topbar .btn-icon {
+    padding: 6px 8px !important;
+    font-size: 14px !important;
+  }
+
+  .topbar .btn-secondary {
+    padding: 6px 10px !important;
+    font-size: 12px !important;
+  }
+
+  /* Map Picker Modal en móvil */
+  .map-picker-container {
+    height: 350px !important;
+  }
+
+  .map-picker-instructions {
+    font-size: 12px !important;
+    padding: 10px !important;
+  }
+
+  .map-search-input {
+    font-size: 14px !important;
+  }
+
+  .selected-location-info {
+    padding: 12px !important;
+    font-size: 13px !important;
+  }
+
+  .selected-location-info strong {
+    font-size: 13px !important;
+  }
+
+  .selected-location-info p {
+    font-size: 12px !important;
+  }
+}
+
+/* Móviles pequeños - Ajustes adicionales */
+@media screen and (max-width: 480px) {
+  #sidebar,
+  .sidebar {
+    height: 65px !important;
+    min-height: 65px !important;
+    max-height: 65px !important;
+  }
+
+  .nav-item {
+    gap: 2px !important;
+    padding: 6px 2px !important;
+    min-width: 50px !important;
+  }
+
+  .nav-icon {
+    font-size: 18px !important;
+  }
+
+  .nav-label {
+    font-size: 9px !important;
+  }
+
+  .topbar {
+    height: 50px !important;
+    padding: 6px 10px !important;
+  }
+
+  .topbar-title {
+    display: none !important;
+  }
+
+  .app-container {
+    padding-bottom: 70px !important;
+  }
+}
+
+/* Landscape móvil */
+@media screen and (max-height: 500px) and (orientation: landscape) {
+  #sidebar,
+  .sidebar {
+    height: 60px !important;
+  }
+
+  .nav-item {
+    padding: 4px 2px !important;
+  }
+
+  .nav-icon {
+    font-size: 16px !important;
+  }
+
+  .nav-label {
+    font-size: 8px !important;
+  }
+
+  .topbar {
+    height: 48px !important;
+  }
+}

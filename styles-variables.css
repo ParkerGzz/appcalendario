@@ -1,0 +1,132 @@
+/**
+ * =================================================================
+ * VARIABLES CSS - Calendario Inteligente
+ * Variables de diseño necesarias para el sistema
+ * =================================================================
+ */
+
+:root {
+  /* ========== COLORES BASE (del styles.css original) ========== */
+  /* Estos ya están definidos en styles.css pero los referencio aquí */
+
+  /* ========== GRISES NEUTROS ========== */
+  --gray-50: #f8fafc;
+  --gray-100: #f1f5f9;
+  --gray-200: #e2e8f0;
+  --gray-300: #cbd5e1;
+  --gray-400: #94a3b8;
+  --gray-500: #64748b;
+  --gray-600: #475569;
+  --gray-700: #334155;
+  --gray-800: #1e293b;
+  --gray-900: #0f172a;
+
+  /* ========== COLORES SEMÁNTICOS ========== */
+  /* Éxito */
+  --success-light: #d1fae5;
+  --success: #10b981;
+  --success-dark: #047857;
+
+  /* Advertencia */
+  --warning-light: #fef3c7;
+  --warning: #f59e0b;
+  --warning-dark: #d97706;
+
+  /* Error/Peligro */
+  --danger-light: #fee2e2;
+  --danger: #ef4444;
+  --danger-dark: #dc2626;
+
+  /* Información - usa violeta del brand */
+  --info-light: #f3e8ff;
+  --info: #7c3aed;
+  --info-dark: #6d28d9;
+
+  /* ========== COLORES DE INTERFAZ ========== */
+  /* Fondos */
+  --bg-primary: #ffffff;
+  --bg-secondary: var(--gray-50);
+  --bg-tertiary: var(--gray-100);
+  --bg1: var(--gray-50);
+  --bg2: var(--gray-100);
+
+  /* Texto */
+  --text-primary: var(--gray-900);
+  --text-secondary: var(--gray-600);
+  --text-tertiary: var(--gray-500);
+  --text-muted: var(--gray-400);
+  --text: var(--gray-900);
+
+  /* Bordes */
+  --border-light: var(--gray-200);
+  --border-default: var(--gray-300);
+  --border-dark: var(--gray-400);
+  --border: var(--gray-300);
+
+  /* Sombras */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+  --shadow-2xl: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+
+  /* Estados interactivos */
+  --hover-overlay: rgba(0, 0, 0, 0.05);
+  --active-overlay: rgba(0, 0, 0, 0.1);
+  --focus-ring: 0 0 0 3px rgba(124, 58, 237, 0.3);
+
+  /* ========== COLORES ESPECÍFICOS DE COMPONENTES ========== */
+  /* Inputs */
+  --input-bg: var(--bg-primary);
+  --input-border: var(--border-default);
+  --input-focus: var(--brand);
+  --input-disabled: var(--gray-100);
+
+  /* Violeta para secondary, success, danger buttons */
+  --secondary-600: #16a34a;
+  --secondary-700: #15803d;
+  --secondary-800: #166534;
+
+  --accent-600: #9333ea;
+  --accent-700: #7e22ce;
+  --accent-800: #6b21a8;
+
+  /* ========== TRANSICIONES ========== */
+  --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-base: 250ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-slow: 350ms cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* ========== ESPACIADO ========== */
+  --spacing-xs: 0.25rem;  /* 4px */
+  --spacing-sm: 0.5rem;   /* 8px */
+  --spacing-md: 1rem;     /* 16px */
+  --spacing-lg: 1.5rem;   /* 24px */
+  --spacing-xl: 2rem;     /* 32px */
+  --spacing-2xl: 3rem;    /* 48px */
+
+  /* ========== BORDES REDONDEADOS ========== */
+  --radius-sm: 0.375rem;   /* 6px */
+  --radius-md: 0.5rem;     /* 8px */
+  --radius-lg: 0.75rem;    /* 12px */
+  --radius-xl: 1rem;       /* 16px */
+  --radius-2xl: 1.5rem;    /* 24px */
+  --radius-full: 9999px;
+
+  /* ========== TIPOGRAFÍA ========== */
+  --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+  --font-mono: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', monospace;
+
+  --text-xs: 0.75rem;      /* 12px */
+  --text-sm: 0.875rem;     /* 14px */
+  --text-base: 1rem;       /* 16px */
+  --text-lg: 1.125rem;     /* 18px */
+  --text-xl: 1.25rem;      /* 20px */
+  --text-2xl: 1.5rem;      /* 24px */
+  --text-3xl: 1.875rem;    /* 30px */
+
+  --font-normal: 400;
+  --font-medium: 500;
+  --font-semibold: 600;
+  --font-bold: 700;
+}

@@ -1,0 +1,303 @@
+/**
+ * =================================================================
+ * FLOATING ACTION BUTTON (FAB) - Material Design
+ * Botón de acción flotante para móviles
+ * =================================================================
+ */
+
+/* ========== FAB CONTAINER ========== */
+.mdc-fab {
+  position: fixed;
+  bottom: 80px; /* Espacio para el bottom navigation */
+  right: 16px;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  border: none;
+  background: linear-gradient(135deg, var(--brand) 0%, var(--accent) 100%);
+  color: white;
+  box-shadow: 0 3px 5px -1px rgba(0, 0, 0, 0.2),
+              0 6px 10px 0 rgba(0, 0, 0, 0.14),
+              0 1px 18px 0 rgba(0, 0, 0, 0.12);
+  cursor: pointer;
+  display: none; /* Oculto por defecto, se muestra solo en móvil */
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 1000;
+  overflow: hidden;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.mdc-fab:hover {
+  background: linear-gradient(135deg, #6d28d9 0%, #9333ea 100%);
+  box-shadow: 0 5px 5px -3px rgba(0, 0, 0, 0.2),
+              0 8px 10px 1px rgba(0, 0, 0, 0.14),
+              0 3px 14px 2px rgba(0, 0, 0, 0.12);
+  transform: scale(1.05);
+}
+
+.mdc-fab:active {
+  background: linear-gradient(135deg, #5b21b6 0%, #7e22ce 100%);
+  box-shadow: 0 7px 8px -4px rgba(0, 0, 0, 0.2),
+              0 12px 17px 2px rgba(0, 0, 0, 0.14),
+              0 5px 22px 4px rgba(0, 0, 0, 0.12);
+  transform: scale(0.95);
+}
+
+.mdc-fab:focus {
+  outline: none;
+}
+
+/* ========== FAB ICON ========== */
+.mdc-fab__icon {
+  font-size: 24px;
+  line-height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  z-index: 2;
+}
+
+/* ========== FAB RIPPLE EFFECT ========== */
+.mdc-fab__ripple {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.mdc-fab__ripple::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 100%;
+  height: 100%;
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  transform: translate(-50%, -50%) scale(0);
+  transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.mdc-fab:active .mdc-fab__ripple::before {
+  transform: translate(-50%, -50%) scale(2.5);
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ========== FAB MINI (Pequeño) ========== */
+.mdc-fab--mini {
+  width: 40px;
+  height: 40px;
+  bottom: 76px;
+}
+
+.mdc-fab--mini .mdc-fab__icon {
+  font-size: 18px;
+  line-height: 18px;
+}
+
+/* Touch target para accesibilidad en mini FAB */
+.mdc-touch-target-wrapper {
+  display: inline-block;
+  position: fixed;
+  bottom: 80px;
+  right: 16px;
+  z-index: 1000;
+}
+
+.mdc-fab--touch {
+  margin: 4px;
+}
+
+.mdc-fab__touch {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 48px;
+  height: 48px;
+  transform: translate(-50%, -50%);
+}
+
+/* ========== FAB EXTENDED (con texto) ========== */
+.mdc-fab--extended {
+  width: auto;
+  height: 48px;
+  border-radius: 24px;
+  padding: 0 20px;
+  display: none;
+  gap: 8px;
+}
+
+.mdc-fab--extended .mdc-fab__icon {
+  margin-right: -4px;
+}
+
+.mdc-fab__label {
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.0892857143em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+/* ========== FAB EXITED (Animación de salida) ========== */
+.mdc-fab--exited {
+  transform: scale(0) translateY(20px);
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* ========== RESPONSIVE - MOSTRAR SOLO EN MÓVIL ========== */
+
+/* Desktop: FAB oculto por defecto */
+@media (min-width: 769px) {
+  .mdc-fab {
+    display: none !important;
+  }
+}
+
+/* Mobile: FAB visible */
+@media (max-width: 768px) {
+  .mdc-fab {
+    display: flex;
+  }
+
+  /* Ajustar posición si hay teclado visible */
+  .keyboard-visible .mdc-fab {
+    bottom: 16px;
+  }
+
+  /* Ajustar posición en pantallas muy pequeñas */
+  @media (max-width: 480px) {
+    .mdc-fab {
+      bottom: 75px; /* Más espacio para el bottom nav */
+      right: 12px;
+      width: 48px;
+      height: 48px;
+    }
+
+    .mdc-fab__icon {
+      font-size: 20px;
+    }
+  }
+}
+
+/* ========== VARIANTES DE COLOR ========== */
+.mdc-fab--secondary {
+  background: var(--secondary-600);
+}
+
+.mdc-fab--secondary:hover {
+  background: var(--secondary-700);
+}
+
+.mdc-fab--secondary:active {
+  background: var(--secondary-800);
+}
+
+.mdc-fab--danger {
+  background: var(--danger);
+}
+
+.mdc-fab--danger:hover {
+  background: var(--danger-dark);
+}
+
+.mdc-fab--danger:active {
+  background: #b91c1c;
+}
+
+/* ========== ANIMACIÓN DE ENTRADA ========== */
+@keyframes fab-enter {
+  from {
+    transform: scale(0) translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1) translateY(0);
+    opacity: 1;
+  }
+}
+
+.mdc-fab.fab-enter {
+  animation: fab-enter 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+/* ========== MÚLTIPLES FABs (Speed Dial) ========== */
+.fab-speed-dial {
+  position: fixed;
+  bottom: 80px;
+  right: 16px;
+  z-index: 1000;
+  display: none;
+}
+
+.fab-speed-dial__actions {
+  position: absolute;
+  bottom: 68px;
+  right: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  opacity: 0;
+  transform: translateY(20px);
+  pointer-events: none;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.fab-speed-dial--open .fab-speed-dial__actions {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+.fab-speed-dial__action {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  justify-content: flex-end;
+}
+
+.fab-speed-dial__action-label {
+  background: rgba(0, 0, 0, 0.87);
+  color: white;
+  padding: 8px 12px;
+  border-radius: 4px;
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* ========== BACKDROP PARA SPEED DIAL ========== */
+.fab-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.3);
+  z-index: 999;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.fab-backdrop--visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+@media (max-width: 768px) {
+  .fab-speed-dial {
+    display: block;
+  }
+}

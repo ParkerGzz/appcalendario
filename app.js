@@ -2819,7 +2819,7 @@ function renderCalendar() {
 
     try {
         fullCalendar = new FullCalendar.Calendar(calendarEl, {
-            initialView: 'timeGridWeek',
+            initialView: 'timeGridDay',
             locale: 'es',
             firstDay: 1,  // 1 = Lunes (0 = Domingo)
             headerToolbar: false,
