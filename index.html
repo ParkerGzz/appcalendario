@@ -842,26 +842,68 @@
             loadNext(0);
         })();
     </script>
-    <script src="config.js"></script>
+
+    <!-- Configuración: Carga config.js (local) o config.public.js (GitHub Pages) -->
+    <script>
+        (function() {
+            const isGitHubPages = window.location.hostname.includes('github.io');
+            const configFile = isGitHubPages ? 'config.public.js' : 'config.js';
+
+            const script = document.createElement('script');
+            script.src = configFile;
+            script.onerror = function() {
+                // Si config.js no existe (local), intentar con config.public.js
+                if (configFile === 'config.js') {
+                    console.warn('⚠️ config.js no encontrado, cargando config.public.js');
+                    const fallbackScript = document.createElement('script');
+                    fallbackScript.src = 'config.public.js';
+                    fallbackScript.onerror = function() {
+                        console.error('❌ No se pudo cargar ningún archivo de configuración');
+                    };
+                    document.head.appendChild(fallbackScript);
+                }
+            };
+            document.head.appendChild(script);
+
+            console.log(`📦 Cargando configuración: ${configFile}`);
+        })();
+    </script>
 
     <!-- Google Maps JavaScript API con Places Library -->
     <script>
         (function() {
-            if (window.APP_CONFIG && window.APP_CONFIG.useGoogleMaps && window.APP_CONFIG.googleMapsFrontendKey) {
-                const script = document.createElement('script');
-                script.src = `https://maps.googleapis.com/maps/api/js?key=${window.APP_CONFIG.googleMapsFrontendKey}&libraries=places&language=es&loading=async`;
-                script.async = true;
-                script.defer = true;
-                script.onload = () => console.log('✅ Google Maps JavaScript API cargada');
-                script.onerror = () => console.error('❌ Error cargando Google Maps JavaScript API');
-                document.head.appendChild(script);
+            // Esperar a que APP_CONFIG esté disponible
+            function loadGoogleMaps() {
+                if (window.APP_CONFIG && window.APP_CONFIG.useGoogleMaps && window.APP_CONFIG.googleMapsFrontendKey) {
+                    const script = document.createElement('script');
+                    script.src = `https://maps.googleapis.com/maps/api/js?key=${window.APP_CONFIG.googleMapsFrontendKey}&libraries=places&language=es&loading=async`;
+                    script.async = true;
+                    script.defer = true;
+                    script.onload = () => console.log('✅ Google Maps JavaScript API cargada');
+                    script.onerror = () => console.error('❌ Error cargando Google Maps JavaScript API');
+                    document.head.appendChild(script);
+                } else {
+                    console.log('ℹ️ Google Maps desactivado o sin API key - usando Nominatim');
+                }
+            }
+
+            // Intentar cargar inmediatamente
+            if (window.APP_CONFIG) {
+                loadGoogleMaps();
             } else {
-                console.log('ℹ️ Google Maps desactivado o sin API key - usando Nominatim');
+                // Si no está disponible, esperar un poco
+                setTimeout(function checkConfig() {
+                    if (window.APP_CONFIG) {
+                        loadGoogleMaps();
+                    } else {
+                        setTimeout(checkConfig, 100);
+                    }
+                }, 100);
             }
         })();
     </script>
 
-    <script src="config.js"></script>
+    <!-- Cargar scripts de la aplicación -->
     <script src="google-maps-api.js"></script>
     <script src="mapa-ruta.js"></script>
     <script src="sidebar-collapse.js"></script>

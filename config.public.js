@@ -57,7 +57,7 @@ window.APP_CONFIG = {
     // - Distance Matrix API (opcional, para backend)
     // SEGURIDAD: Este config.js se mantiene por compatibilidad
     // La configuración real con variables de entorno está en src/config.js
-    apiKey: 'YOUR_GOOGLE_MAPS_API_KEY',
+    apiKey: 'AIzaSyCICyMcdM47lzTGq6hJgfwuEw_Gk8FCRNM',
 
     // Configuración de carga
     loadingStrategy: 'async', // 'async' o 'defer'
