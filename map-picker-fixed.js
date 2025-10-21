@@ -348,15 +348,22 @@
         if (!mapPickerMap || !placesService) return;
 
         const center = mapPickerMap.getCenter();
-        placesService.nearbySearch({
-            location: center,
-            radius: 2000,
-            type: ['restaurant', 'cafe', 'store', 'supermarket', 'bank', 'pharmacy', 'gas_station']
-        }, function(results, status) {
-            if (status === google.maps.places.PlacesServiceStatus.OK) {
-                displayNearbyPlaces(results.slice(0, 20));
-            }
-        });
+
+        try {
+            placesService.nearbySearch({
+                location: center,
+                radius: 2000,
+                type: ['restaurant', 'cafe', 'store', 'supermarket', 'bank', 'pharmacy', 'gas_station']
+            }, function(results, status) {
+                if (status === google.maps.places.PlacesServiceStatus.OK && results) {
+                    displayNearbyPlaces(results.slice(0, 20));
+                } else if (status !== google.maps.places.PlacesServiceStatus.ZERO_RESULTS) {
+                    console.warn('⚠️ Error cargando lugares cercanos:', status);
+                }
+            });
+        } catch (error) {
+            console.error('❌ Error en nearbySearch:', error);
+        }
     }
 
     function displayNearbyPlaces(places) {
