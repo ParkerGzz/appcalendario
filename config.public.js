@@ -1,12 +1,32 @@
 /**
  * =========================================
- * CONFIGURACIÓN DEL CALENDARIO INTELIGENTE
+ * CONFIGURACIÓN PÚBLICA - GITHUB PAGES
  * =========================================
  *
- * IMPORTANTE:
- * - Este archivo contiene tu API key configurada
- * - NO commitear este archivo en repositorios públicos
- * - Usar config.example.js como plantilla para nuevos entornos
+ * ⚠️ IMPORTANTE - CONFIGURACIÓN DE SEGURIDAD:
+ *
+ * Esta API key está diseñada para GitHub Pages y DEBE tener
+ * restricciones configuradas en Google Cloud Console.
+ *
+ * 🔧 CONFIGURAR EN GOOGLE CLOUD CONSOLE:
+ *
+ * 1. Ve a: https://console.cloud.google.com/apis/credentials
+ * 2. Selecciona la API key: AIzaSyCICyMcdM47lzTGq6hJgfwuEw_Gk8FCRNM
+ * 3. En "Application restrictions" selecciona "HTTP referrers"
+ * 4. Agrega estos referrers (OBLIGATORIO):
+ *
+ *    ✅ https://parkergzz.github.io/*
+ *    ✅ https://parkergzz.github.io/appcalendario/*
+ *
+ * 5. En "API restrictions" habilita SOLO:
+ *    ✅ Maps JavaScript API
+ *    ✅ Places API (New)
+ *    ✅ Geocoding API
+ *
+ * 6. Guarda los cambios
+ *
+ * Sin estas restricciones, la API key NO funcionará en GitHub Pages.
+ * Ver GOOGLE-MAPS-SECURITY.md para más detalles.
  */
 
 window.APP_CONFIG = {
@@ -65,10 +85,17 @@ window.APP_CONFIG = {
     language: 'es',
     region: 'CL', // Código de país para resultados localizados
 
-    // Restricciones de HTTP Referrer (configurar en Google Cloud Console):
+    // ⚠️ RESTRICCIONES DE HTTP REFERRER (CONFIGURAR EN GOOGLE CLOUD CONSOLE):
+    // Para GitHub Pages (PRODUCCIÓN):
+    // ✅ https://parkergzz.github.io/*
+    // ✅ https://parkergzz.github.io/appcalendario/*
+    //
+    // Para desarrollo local (OPCIONAL - usar config.js en su lugar):
     // - http://localhost:*/*
     // - http://127.0.0.1:*/*
     // - file:///*
+    //
+    // 🔗 Configurar aquí: https://console.cloud.google.com/apis/credentials
 
     // Configuración de búsqueda de lugares
     placesConfig: {
