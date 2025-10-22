@@ -3012,3 +3012,145 @@ body.sidebar-open .sidebar-overlay {
     max-height: 100vh;
   }
 }
+
+/* ===== PROFILE DROPDOWN MENU ===== */
+
+.user-menu-wrapper {
+  position: relative;
+  display: inline-block;
+}
+
+.profile-menu-btn {
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  padding: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.profile-menu-btn:hover {
+  border-color: var(--brand);
+  background-color: var(--bg-hover, rgba(59, 130, 246, 0.1));
+}
+
+.profile-menu-btn .user-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.profile-dropdown {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 8px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  min-width: 240px;
+  z-index: 1000;
+  animation: slideDown 0.2s ease;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.profile-dropdown-header {
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.profile-dropdown-header .dropdown-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.dropdown-email {
+  flex: 1;
+  font-size: 14px;
+  color: var(--text);
+  font-weight: 500;
+  word-break: break-word;
+}
+
+.dropdown-divider {
+  margin: 8px 0;
+  border: none;
+  border-top: 1px solid var(--border);
+}
+
+.dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  color: var(--text);
+  text-decoration: none;
+  transition: all 0.2s ease;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.dropdown-item:hover {
+  background-color: var(--bg-hover, rgba(59, 130, 246, 0.05));
+  color: var(--brand);
+}
+
+.dropdown-item.logout-item {
+  color: #ef4444;
+}
+
+.dropdown-item.logout-item:hover {
+  background-color: rgba(239, 68, 68, 0.1);
+  color: #dc2626;
+}
+
+.dropdown-icon {
+  font-size: 18px;
+  min-width: 20px;
+  text-align: center;
+}
+
+.dropdown-text {
+  flex: 1;
+}
+
+/* Hide dropdown by default */
+.profile-dropdown[style*="display: none"] {
+  display: none !important;
+}
+
+.profile-dropdown.show {
+  display: block;
+}
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+  .profile-dropdown {
+    min-width: 200px;
+    right: -10px;
+  }
+  
+  .dropdown-email {
+    max-width: 150px;
+  }
+}

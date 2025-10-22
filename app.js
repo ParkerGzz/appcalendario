@@ -234,12 +234,95 @@ function logout() {
     showAuth();
 }
 
+// ===== PROFILE DROPDOWN MENU HANDLER =====
+function setupProfileDropdown() {
+    const profileMenuBtn = document.getElementById('profileMenuBtn');
+    const profileDropdown = document.getElementById('profileDropdown');
+    const dropdownItems = document.querySelectorAll('.dropdown-item');
+
+    if (!profileMenuBtn || !profileDropdown) {
+        console.warn('Profile dropdown elements not found');
+        return;
+    }
+
+    // Toggle dropdown when clicking profile button
+    profileMenuBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const isHidden = profileDropdown.style.display === 'none';
+        profileDropdown.style.display = isHidden ? 'block' : 'none';
+    });
+
+    // Handle dropdown item clicks
+    dropdownItems.forEach(item => {
+        item.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            const action = item.getAttribute('data-action');
+            
+            switch(action) {
+                case 'logout':
+                    logout();
+                    break;
+                case 'settings':
+                    // Navigate to settings view
+                    document.querySelector('[data-view="settings"]')?.click();
+                    closeProfileDropdown();
+                    break;
+                case 'help':
+                    // Open help modal
+                    document.getElementById('helpButton')?.click();
+                    closeProfileDropdown();
+                    break;
+                default:
+                    console.warn(`Unknown action: ${action}`);
+            }
+        });
+    });
+
+    // Close dropdown when clicking outside
+    document.addEventListener('click', (e) => {
+        if (!profileMenuBtn.contains(e.target) && !profileDropdown.contains(e.target)) {
+            closeProfileDropdown();
+        }
+    });
+
+    // Update email in dropdown when user email changes
+    updateProfileDropdownEmail();
+}
+
+function closeProfileDropdown() {
+    const profileDropdown = document.getElementById('profileDropdown');
+    if (profileDropdown) {
+        profileDropdown.style.display = 'none';
+    }
+}
+
+function updateProfileDropdownEmail() {
+    const userEmail = document.getElementById('userEmail');
+    const userEmailDropdown = document.getElementById('userEmailDropdown');
+    
+    if (userEmail && userEmailDropdown) {
+        const email = userEmail.textContent;
+        if (email) {
+            userEmailDropdown.textContent = email;
+        }
+    }
+}
+
+// Update dropdown email when user info changes
+function updateUserEmailDisplay(email) {
+    document.getElementById('userEmail').textContent = email;
+    updateProfileDropdownEmail();
+}
+
+
 // ===== NAVEGACIÓN =====
 function mountNavHandlers() {
     const toggleBtn = document.getElementById('toggleSidebar');
     const sidebar = document.getElementById('sidebar');
     const overlay = document.getElementById('sidebarOverlay');
-    const logoutBtn = document.getElementById('logoutButton');
+    // const logoutBtn = document.getElementById('logoutButton');
     const navItems = document.querySelectorAll('.nav-item');
     const mobileQuery = window.matchMedia('(max-width: 768px)');
 
@@ -272,10 +355,10 @@ function mountNavHandlers() {
         overlay.addEventListener('click', closeSidebar);
     }
 
-    if (logoutBtn) {
-        logoutBtn.addEventListener('click', logout);
-    }
-
+    // Logout is now handled from the profile dropdown menu
+    // if (logoutBtn) {
+    //     logoutBtn.addEventListener('click', logout);
+    // }
     navItems.forEach(item => {
         item.addEventListener('click', (e) => {
             e.preventDefault();
@@ -633,6 +716,7 @@ function closeModal(modal) {
 
 // Event Listeners
 function setupEventListeners() {
+    setupProfileDropdown();
     // Ubicaciones
     document.getElementById('detectHome').addEventListener('click', () => detectLocation('home'));
     document.getElementById('detectWork').addEventListener('click', () => detectLocation('work'));

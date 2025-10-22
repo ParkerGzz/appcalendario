@@ -49,15 +49,35 @@
         <header class="topbar">
             <div class="topbar-left">
                 <button id="toggleSidebar" class="btn-icon" title="Menú" aria-label="Abrir o cerrar menú de navegación">☰</button>
-                <img src="assets/logo.svg" alt="Logo" class="topbar-logo">
+                
                 <h1 class="topbar-title">Calendario Inteligente</h1>
             </div>
             <div class="topbar-right">
                 <button id="helpButton" class="btn-icon" title="Ayuda (?)" aria-label="Abrir ventana de ayuda">❓</button>
-                <div class="user-menu">
-                    <img src="assets/avatar.png" alt="Avatar" class="user-avatar">
-                    <span id="userEmail" class="user-email">usuario@ejemplo.com</span>
-                    <button id="logoutButton" class="btn btn-secondary btn-sm">Cerrar Sesión</button>
+                <div class="user-menu-wrapper">
+                    <button id="profileMenuBtn" class="profile-menu-btn" title="Menú de perfil" aria-label="Menú de usuario">
+                        <img src="assets/avatar.png" alt="Avatar" class="user-avatar">
+                    </button>
+                    <div id="profileDropdown" class="profile-dropdown" style="display: none;">
+                        <div class="profile-dropdown-header">
+                            <img src="assets/avatar.png" alt="Avatar" class="dropdown-avatar">
+                            <span id="userEmailDropdown" class="dropdown-email">usuario@ejemplo.com</span>
+                        </div>
+                        <hr class="dropdown-divider">
+                        <a href="#" class="dropdown-item" data-action="settings">
+                            <span class="dropdown-icon">⚙️</span>
+                            <span class="dropdown-text">Ajustes</span>
+                        </a>
+                        <a href="#" class="dropdown-item" data-action="help">
+                            <span class="dropdown-icon">❓</span>
+                            <span class="dropdown-text">Consultas</span>
+                        </a>
+                        <hr class="dropdown-divider">
+                        <a href="#" class="dropdown-item logout-item" data-action="logout">
+                            <span class="dropdown-icon">🚪</span>
+                            <span class="dropdown-text">Cerrar Sesión</span>
+                        </a>
+                    </div>
                 </div>
             </div>
         </header>
