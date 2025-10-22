@@ -1629,8 +1629,22 @@ body.sidebar-open .sidebar-overlay {
 
 /* Slot styling */
 .fc .fc-timegrid-slot {
-  height: 3em;
-  border-color: rgba(255, 255, 255, 0.05);
+  height: 1.5em;
+  border-color: #e5e7eb;
+  border-top-width: 1px;
+  border-bottom-width: 0;
+}
+
+/* Cada dos slots (30 minutos = una línea normal) */
+.fc .fc-timegrid-slot:nth-child(odd) {
+  border-top-color: #f3f4f6;
+  border-top-width: 1px;
+}
+
+/* Cada cuatro slots (60 minutos = línea más gruesa y oscura) */
+.fc .fc-timegrid-slot:nth-child(4n+1) {
+  border-top-color: #9ca3af;
+  border-top-width: 2px;
 }
 
 .fc .fc-timegrid-slot-label {
@@ -2776,7 +2790,20 @@ body.sidebar-open .sidebar-overlay {
 }
 
 .fc .fc-timegrid-slot {
-  height: 3.5rem !important;
+  height: 1.75rem !important;
+  border-top-width: 1px;
+  border-bottom-width: 0;
+}
+
+/* Líneas cada 30 minutos - gris suave */
+.fc .fc-timegrid-slot:nth-child(odd) {
+  border-top-color: #f3f4f6;
+}
+
+/* Líneas cada 60 minutos - gris oscuro y más grueso */
+.fc .fc-timegrid-slot:nth-child(4n+1) {
+  border-top-color: #9ca3af;
+  border-top-width: 2px;
 }
 
 .fc .fc-timegrid-slot-label {

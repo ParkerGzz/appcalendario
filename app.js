@@ -2833,7 +2833,7 @@ function renderCalendar() {
             editable: true,
             dayMaxEvents: true,
             height: 'auto',
-            slotDuration: '01:00:00',
+            slotDuration: '00:30:00',
             slotLabelInterval: '01:00:00',
             slotLabelFormat: {
                 hour: '2-digit',
