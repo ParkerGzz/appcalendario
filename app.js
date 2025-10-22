@@ -3961,6 +3961,7 @@ function openTaskModal(taskId = null, prefilledData = null) {
     document.getElementById('modalTaskPriority').value = 'media';
     document.getElementById('modalTaskStatus').value = 'active';
     document.getElementById('modalTaskDuration').value = '1';
+    document.getElementById('modalTaskIsFixed').checked = false;
 
     if (taskId) {
         // Modo edición
@@ -3978,6 +3979,7 @@ function openTaskModal(taskId = null, prefilledData = null) {
         document.getElementById('modalTaskAddress').value = task.address || '';
         document.getElementById('modalTaskPriority').value = task.priority;
         document.getElementById('modalTaskStatus').value = task.status || 'active';
+        document.getElementById('modalTaskIsFixed').checked = task.isFixed || false;
 
         if (task.assignedDate) {
             document.getElementById('modalTaskDate').value = convertToDateInputFormat(task.assignedDate);
@@ -4027,6 +4029,7 @@ function saveTaskFromModal(e) {
     const placeId = document.getElementById('modalTaskPlaceId').value || null;
     const priority = document.getElementById('modalTaskPriority').value;
     const status = document.getElementById('modalTaskStatus').value;
+    const isFixed = document.getElementById('modalTaskIsFixed').checked || false;
     const dateInput = document.getElementById('modalTaskDate').value;
     const timeInput = document.getElementById('modalTaskTime').value;
     const deadlineInput = document.getElementById('modalTaskDeadline').value;
@@ -4058,6 +4061,7 @@ function saveTaskFromModal(e) {
             task.address = address;
             task.priority = priority;
             task.status = status;
+            task.isFixed = isFixed;
             task.assignedDate = assignedDate;
             task.assignedTime = normalizeTimeFormat(timeInput) || null;
             task.deadline = deadline;

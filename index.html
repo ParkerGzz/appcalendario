@@ -246,18 +246,6 @@
                                 </div>
                             </div>
 
-                            <div class="form-row">
-                                <div class="input-group">
-                                    <label class="checkbox-label" style="margin-top: 8px;">
-                                        <input type="checkbox" id="taskIsFixed">
-                                        <span>📌 Tarea fija (no se puede mover durante la optimización)</span>
-                                    </label>
-                                    <small style="margin-left: 28px; display: block; margin-top: 4px;">
-                                        Las tareas fijas mantienen su horario asignado y no se reorganizan automáticamente
-                                    </small>
-                                </div>
-                            </div>
-
                             <button type="submit" class="btn btn-success">Añadir Tarea</button>
                         </form>
                     </div>
@@ -654,6 +642,16 @@
                         <option value="pending">⏳ Pendiente</option>
                         <option value="archived">📦 Archivada</option>
                     </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="checkbox-label" style="margin-top: 8px;">
+                        <input type="checkbox" id="modalTaskIsFixed">
+                        <span>📌 Tarea fija (no se puede mover durante la optimización)</span>
+                    </label>
+                    <small style="margin-left: 28px; display: block; margin-top: 4px;">
+                        Las tareas fijas mantienen su horario asignado en el calendario y no se reorganizan automáticamente durante la optimización
+                    </small>
                 </div>
 
                 <div class="task-modal-actions">
