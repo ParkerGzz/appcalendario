@@ -3071,6 +3071,10 @@ body.sidebar-open .sidebar-overlay {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   min-width: 240px;
   z-index: 1000;
+  transition: all 0.2s ease;
+}
+
+.profile-dropdown.show {
   animation: slideDown 0.2s ease;
 }
 
@@ -3151,12 +3155,12 @@ body.sidebar-open .sidebar-overlay {
 }
 
 /* Hide dropdown by default */
-.profile-dropdown[style*="display: none"] {
+.profile-dropdown.hidden {
   display: none !important;
 }
 
 .profile-dropdown.show {
-  display: block;
+  display: block !important;
 }
 
 /* Mobile responsive */

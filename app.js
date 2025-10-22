@@ -248,8 +248,14 @@ function setupProfileDropdown() {
     // Toggle dropdown when clicking profile button
     profileMenuBtn.addEventListener('click', (e) => {
         e.stopPropagation();
-        const isHidden = profileDropdown.style.display === 'none';
-        profileDropdown.style.display = isHidden ? 'block' : 'none';
+        const isHidden = profileDropdown.classList.contains('hidden');
+        if (isHidden) {
+            profileDropdown.classList.remove('hidden');
+            profileDropdown.classList.add('show');
+        } else {
+            profileDropdown.classList.remove('show');
+            profileDropdown.classList.add('hidden');
+        }
     });
 
     // Handle dropdown item clicks
@@ -294,7 +300,8 @@ function setupProfileDropdown() {
 function closeProfileDropdown() {
     const profileDropdown = document.getElementById('profileDropdown');
     if (profileDropdown) {
-        profileDropdown.style.display = 'none';
+        profileDropdown.classList.remove('show');
+        profileDropdown.classList.add('hidden');
     }
 }
 
