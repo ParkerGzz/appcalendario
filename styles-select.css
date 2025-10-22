@@ -1,0 +1,208 @@
+/* ========== IMPROVED SELECT STYLING ========== */
+
+/* Container para custom select */
+.select-wrapper {
+  position: relative;
+  display: inline-block;
+  width: 100%;
+}
+
+/* Select base mejorado */
+select {
+  width: 100%;
+  padding: 12px 16px;
+  border: 2px solid var(--border);
+  border-radius: 8px;
+  background: var(--input-bg);
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  appearance: none;
+  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="12" height="8" viewBox="0 0 12 8"><path fill="%2310155f" d="M1 1l5 5 5-5"/></svg>');
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  padding-right: 40px;
+  line-height: 1.5;
+}
+
+/* Hover state */
+select:hover {
+  border-color: var(--brand);
+  background-color: var(--input-hover);
+  box-shadow: 0 2px 8px rgba(16, 21, 95, 0.1);
+}
+
+/* Focus state */
+select:focus {
+  outline: none;
+  border-color: var(--brand);
+  box-shadow: 0 0 0 4px rgba(16, 21, 95, 0.1), 0 2px 8px rgba(16, 21, 95, 0.15);
+  background-color: var(--input-bg);
+}
+
+/* Disabled state */
+select:disabled {
+  background-color: #f1f5f9;
+  color: var(--text-muted);
+  cursor: not-allowed;
+  opacity: 0.6;
+  border-color: var(--border);
+}
+
+/* Option styles */
+option {
+  padding: 12px;
+  background: var(--input-bg);
+  color: var(--text);
+  font-weight: 500;
+  line-height: 1.6;
+  margin: 4px 0;
+}
+
+/* Opción seleccionada */
+option:checked {
+  background: linear-gradient(135deg, var(--brand) 0%, var(--accent) 100%);
+  color: white;
+  font-weight: 600;
+}
+
+/* Para móvil - aumentar tamaño de los elementos */
+@media (max-width: 768px) {
+  select {
+    padding: 14px 18px;
+    font-size: 16px;
+    min-height: 48px;
+    border-radius: 10px;
+    padding-right: 45px;
+  }
+
+  select:focus {
+    outline: none;
+    border-color: var(--brand);
+    box-shadow: 0 0 0 5px rgba(16, 21, 95, 0.15);
+  }
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  select {
+    background-color: #1e293b;
+    color: #f1f5f9;
+    border-color: #334155;
+  }
+
+  select:hover {
+    border-color: #3b82f6;
+    background-color: #334155;
+  }
+
+  select:focus {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1), 0 2px 8px rgba(59, 130, 246, 0.15);
+  }
+
+  option {
+    background: #1e293b;
+    color: #f1f5f9;
+  }
+
+  option:checked {
+    background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%);
+  }
+}
+
+/* ========== PROFESIONAL ENHANCEMENTS ========== */
+
+/* Wrapper para grupos de select */
+.select-group {
+  margin-bottom: 20px;
+}
+
+/* Label mejorado */
+.select-group label,
+.input-group label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 600;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text);
+  transition: color 0.2s ease;
+}
+
+.select-group select:focus ~ label,
+.input-group input:focus ~ label {
+  color: var(--brand);
+}
+
+/* Help text debajo del select */
+.select-helper {
+  display: block;
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--text-muted);
+  font-weight: 400;
+  transition: color 0.2s ease;
+}
+
+select:focus ~ .select-helper {
+  color: var(--brand);
+}
+
+/* ========== ICON VARIANTS ========== */
+
+/* Para selects con iconos */
+.select-with-icon {
+  padding-left: 40px;
+  background-size: 20px, auto;
+  background-position: 12px center, right 14px center;
+  background-repeat: no-repeat;
+}
+
+/* Ejemplo para transport mode */
+.select-with-icon[id="transportMode"] {
+  background-image:
+    url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%2310155f"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/></svg>'),
+    url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="12" height="8" viewBox="0 0 12 8"><path fill="%2310155f" d="M1 1l5 5 5-5"/></svg>');
+}
+
+/* ========== ANIMATION ========== */
+
+/* Smooth transitions */
+select {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Ripple effect on click */
+select:active {
+  transform: scale(0.98);
+}
+
+/* ========== ACCESSIBILITY ========== */
+
+/* High contrast mode */
+@media (prefers-contrast: more) {
+  select {
+    border-width: 3px;
+  }
+
+  select:focus {
+    outline: 3px solid var(--brand);
+    outline-offset: 2px;
+  }
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  select {
+    transition: none;
+  }
+
+  select:active {
+    transform: none;
+  }
+}

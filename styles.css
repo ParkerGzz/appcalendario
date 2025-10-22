@@ -314,35 +314,64 @@ body.sidebar-open .sidebar-overlay {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  margin-bottom: 16px;
+  margin-bottom: 20px;
+  position: relative;
 }
 
 .input-group label {
-  font-size: 14px;
-  font-weight: 500;
+  font-size: 13px;
+  font-weight: 600;
   color: var(--text);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  transition: color 0.2s ease;
 }
 
 .input-group input,
 .input-group select {
-  background: var(--bg2);
-  border: 1px solid var(--border);
+  background: var(--input-bg);
+  border: 2px solid var(--border);
   color: var(--text);
-  padding: 10px 12px;
-  border-radius: 6px;
+  padding: 12px 14px;
+  border-radius: 8px;
   font-size: 14px;
-  transition: border-color 0.2s;
+  font-weight: 500;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  font-family: inherit;
+}
+
+.input-group input::placeholder,
+.input-group select::placeholder {
+  color: var(--text-muted);
+  opacity: 0.7;
+}
+
+.input-group input:hover,
+.input-group select:hover {
+  border-color: var(--brand);
+  background-color: var(--input-hover);
+  box-shadow: 0 2px 8px rgba(16, 21, 95, 0.08);
 }
 
 .input-group input:focus,
 .input-group select:focus {
   outline: none;
   border-color: var(--brand);
+  background-color: var(--input-bg);
+  box-shadow: 0 0 0 4px rgba(16, 21, 95, 0.1), 0 2px 8px rgba(16, 21, 95, 0.15);
 }
 
 .input-group small {
   color: var(--text-muted);
   font-size: 12px;
+  font-weight: 400;
+  margin-top: 4px;
+  transition: color 0.2s ease;
+}
+
+.input-group input:focus ~ small,
+.input-group select:focus ~ small {
+  color: var(--brand);
 }
 
 .form-row {
@@ -1752,6 +1781,9 @@ body.sidebar-open .sidebar-overlay {
   font-size: 13px;
   font-weight: 600;
   color: var(--text);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  transition: color 0.2s ease;
 }
 
 .task-modal-form input[type="text"],
@@ -1760,13 +1792,38 @@ body.sidebar-open .sidebar-overlay {
 .task-modal-form input[type="date"],
 .task-modal-form select {
   width: 100%;
-  padding: 10px 14px;
-  background: var(--hover-bg);
-  border: 1px solid var(--border);
+  padding: 12px 14px;
+  background: var(--input-bg);
+  border: 2px solid var(--border);
   border-radius: 8px;
   color: var(--text);
   font-size: 14px;
-  transition: all 0.2s ease;
+  font-weight: 500;
+  font-family: inherit;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.task-modal-form input[type="text"]::placeholder,
+.task-modal-form input[type="number"]::placeholder,
+.task-modal-form input[type="time"]::placeholder,
+.task-modal-form input[type="date"]::placeholder {
+  color: var(--text-muted);
+  opacity: 0.7;
+}
+
+.task-modal-form input:hover,
+.task-modal-form select:hover {
+  border-color: var(--brand);
+  background-color: var(--input-hover);
+  box-shadow: 0 2px 8px rgba(16, 21, 95, 0.08);
+}
+
+.task-modal-form input:focus,
+.task-modal-form select:focus {
+  outline: none;
+  border-color: var(--brand);
+  background-color: var(--input-bg);
+  box-shadow: 0 0 0 4px rgba(16, 21, 95, 0.1), 0 2px 8px rgba(16, 21, 95, 0.15);
 }
 
 /* Estilo para date y time inputs */

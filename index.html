@@ -8,6 +8,8 @@
     <link rel="stylesheet" href="styles-mapa.css">
     <link rel="stylesheet" href="styles-variables.css">
     <link rel="stylesheet" href="styles-professional-enhancements.css">
+    <!-- Enhanced Select Styling -->
+    <link rel="stylesheet" href="styles-select.css">
     <!-- FullCalendar CSS -->
     <link id="fc-css" rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.css" onerror="this.onerror=null; this.href='https://unpkg.com/fullcalendar@5.11.3/main.min.css'">
     <!-- Mobile Override - Debe ser el último para tener máxima prioridad -->
@@ -214,13 +216,14 @@
                                 </div>
 
                                 <div class="input-group">
-                                    <label for="taskPriority">Prioridad:</label>
-                                    <select id="taskPriority" required>
-                                        <option value="baja">Baja</option>
-                                        <option value="media" selected>Media</option>
-                                        <option value="alta">Alta</option>
-                                        <option value="urgente">Urgente</option>
+                                    <label for="taskPriority">⚡ Nivel de Prioridad</label>
+                                    <select id="taskPriority" required aria-label="Selecciona el nivel de prioridad de la tarea">
+                                        <option value="baja">🟢 Baja</option>
+                                        <option value="media" selected>🟡 Media</option>
+                                        <option value="alta">🟠 Alta</option>
+                                        <option value="urgente">🔴 Urgente</option>
                                     </select>
+                                    <small class="select-helper">Define la importancia de esta tarea</small>
                                 </div>
                             </div>
 
@@ -346,13 +349,15 @@
                         <h3>🚗 Medio de Transporte Preferido</h3>
                         <div class="transport-options">
                             <div class="input-group">
-                                <label for="transportMode">Modo de transporte:</label>
-                                <select id="transportMode">
-                                    <option value="driving">🚗 Auto</option>
+                                <label for="transportMode">🚗 Medio de Transporte</label>
+                                <select id="transportMode" aria-label="Selecciona tu medio de transporte preferido">
+                                    <option value="">-- Selecciona un transporte --</option>
+                                    <option value="driving">🚗 Auto (Automóvil)</option>
                                     <option value="transit">🚌 Transporte Público</option>
                                     <option value="bicycling">🚴 Bicicleta</option>
                                     <option value="walking">🚶 A pie</option>
                                 </select>
+                                <small class="select-helper">Elige cómo prefieres desplazarte</small>
                             </div>
                             <div class="input-group">
                                 <label for="maxDetour">Desvío máximo aceptable (minutos):</label>
@@ -475,19 +480,23 @@
                         <div class="route-planner-controls">
                             <div class="form-row">
                                 <div class="input-group">
-                                    <label for="routeOrigin">Origen:</label>
-                                    <select id="routeOrigin">
+                                    <label for="routeOrigin">📍 Punto de Origen</label>
+                                    <select id="routeOrigin" aria-label="Selecciona tu punto de origen">
+                                        <option value="">-- Selecciona un origen --</option>
                                         <option value="home">🏠 Casa</option>
                                         <option value="work">💼 Trabajo</option>
                                         <option value="current">📍 Mi ubicación actual</option>
                                     </select>
+                                    <small class="select-helper">Elige dónde comienza tu ruta</small>
                                 </div>
                                 <div class="input-group">
-                                    <label for="routeDestination">Destino:</label>
-                                    <select id="routeDestination">
+                                    <label for="routeDestination">🎯 Punto de Destino</label>
+                                    <select id="routeDestination" aria-label="Selecciona tu punto de destino">
+                                        <option value="">-- Selecciona un destino --</option>
                                         <option value="work">💼 Trabajo</option>
                                         <option value="home">🏠 Casa</option>
                                     </select>
+                                    <small class="select-helper">Elige dónde termina tu ruta</small>
                                 </div>
                             </div>
                             <div class="input-group">
@@ -602,12 +611,12 @@
                     </div>
 
                     <div class="form-group">
-                        <label for="modalTaskPriority">Prioridad:</label>
-                        <select id="modalTaskPriority" required>
-                            <option value="baja">Baja</option>
-                            <option value="media" selected>Media</option>
-                            <option value="alta">Alta</option>
-                            <option value="urgente">Urgente</option>
+                        <label for="modalTaskPriority">⚡ Prioridad</label>
+                        <select id="modalTaskPriority" required aria-label="Selecciona la prioridad de la tarea">
+                            <option value="baja">🟢 Baja</option>
+                            <option value="media" selected>🟡 Media</option>
+                            <option value="alta">🟠 Alta</option>
+                            <option value="urgente">🔴 Urgente</option>
                         </select>
                     </div>
                 </div>
@@ -639,11 +648,11 @@
                 </div>
 
                 <div class="form-group">
-                    <label for="modalTaskStatus">Estado:</label>
-                    <select id="modalTaskStatus">
-                        <option value="active">Activa</option>
-                        <option value="pending">Pendiente</option>
-                        <option value="archived">Archivada</option>
+                    <label for="modalTaskStatus">📋 Estado de la Tarea</label>
+                    <select id="modalTaskStatus" aria-label="Selecciona el estado de la tarea">
+                        <option value="active">✅ Activa</option>
+                        <option value="pending">⏳ Pendiente</option>
+                        <option value="archived">📦 Archivada</option>
                     </select>
                 </div>
 
