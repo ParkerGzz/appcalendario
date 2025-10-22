@@ -1356,78 +1356,109 @@ function updateScheduleInfo() {
 function addTask(e) {
     e.preventDefault();
 
-    // Obtener y validar deadline
-    const deadlineInput = document.getElementById('taskDeadline').value;
-    let deadline = null;
-    if (deadlineInput) {
-        deadline = parseDateInput(deadlineInput);
-        if (!deadline) {
-            alert('Formato de fecha límite inválido. Usa DD-MM-YYYY (ej: 15-10-2025)');
-            return;
-        }
-    }
-
-    // Obtener y validar ventana de tiempo
-    const windowStartInput = document.getElementById('taskWindowStart').value;
-    const windowEndInput = document.getElementById('taskWindowEnd').value;
-    let windowStart = null;
-    let windowEnd = null;
-
-    if (windowStartInput || windowEndInput) {
-        if (windowStartInput && windowEndInput) {
-            windowStart = parseDateInput(windowStartInput);
-            windowEnd = parseDateInput(windowEndInput);
-
-            if (!windowStart || !windowEnd) {
-                alert('Formato de ventana de tiempo inválido. Usa DD-MM-YYYY');
+    try {
+        // Obtener y validar deadline
+        const deadlineInput = document.getElementById('taskDeadline').value;
+        let deadline = null;
+        if (deadlineInput) {
+            deadline = parseDateInput(deadlineInput);
+            if (!deadline) {
+                showNotification('❌ Formato de fecha límite inválido. Usa DD-MM-YYYY (ej: 15-10-2025)', 'error', 5000);
                 return;
             }
+        }
 
-            // Validar que windowStart < windowEnd
-            if (new Date(windowStart) > new Date(windowEnd)) {
-                alert('La fecha de inicio debe ser anterior a la fecha de fin');
+        // Obtener y validar ventana de tiempo
+        const windowStartInput = document.getElementById('taskWindowStart').value;
+        const windowEndInput = document.getElementById('taskWindowEnd').value;
+        let windowStart = null;
+        let windowEnd = null;
+
+        if (windowStartInput || windowEndInput) {
+            if (windowStartInput && windowEndInput) {
+                windowStart = parseDateInput(windowStartInput);
+                windowEnd = parseDateInput(windowEndInput);
+
+                if (!windowStart || !windowEnd) {
+                    showNotification('❌ Formato de ventana de tiempo inválido. Usa DD-MM-YYYY', 'error', 5000);
+                    return;
+                }
+
+                // Validar que windowStart < windowEnd
+                if (new Date(windowStart) > new Date(windowEnd)) {
+                    showNotification('❌ La fecha de inicio debe ser anterior a la fecha de fin', 'error', 5000);
+                    return;
+                }
+            } else {
+                showNotification('❌ Debes especificar tanto fecha de inicio como de fin para la ventana de tiempo', 'error', 5000);
                 return;
             }
-        } else {
-            alert('Debes especificar tanto fecha de inicio como de fin para la ventana de tiempo');
+        }
+
+        // Validación básica de datos requeridos
+        const taskName = document.getElementById('taskName').value?.trim();
+        const taskDuration = parseFloat(document.getElementById('taskDuration').value);
+        const taskPriority = document.getElementById('taskPriority').value;
+
+        // Validar nombre
+        if (!taskName || taskName.length < 3) {
+            showNotification('❌ El nombre de la tarea debe tener al menos 3 caracteres', 'error', 5000);
+            document.getElementById('taskName').focus();
             return;
         }
+
+        // Validar duración
+        if (!taskDuration || taskDuration < 15 || taskDuration > 1440) {
+            showNotification('❌ La duración debe estar entre 15 minutos (0.25h) y 1440 minutos (24h)', 'error', 5000);
+            document.getElementById('taskDuration').focus();
+            return;
+        }
+
+        // Validar prioridad
+        if (!['baja', 'media', 'alta', 'urgente'].includes(taskPriority)) {
+            showNotification('❌ La prioridad no es válida', 'error', 5000);
+            return;
+        }
+
+        // Construir objeto de tarea
+        const task = {
+            id: Date.now(),
+            name: taskName,
+            duration: taskDuration,
+            location: document.getElementById('taskLocation').value,
+            address: document.getElementById('taskAddress').value || null,
+            priority: taskPriority,
+            deadline: deadline,
+            windowStart: windowStart,
+            windowEnd: windowEnd,
+            assignedDate: null,
+            assignedTime: null,
+            lat: null,
+            lng: null,
+            status: 'active',  // active, pending, archived
+            isFixed: false  // isFixed solo se puede establecer desde el modal del calendario
+        };
+
+        // Intentar geocodificar la dirección si se proporcionó
+        if (task.address) {
+            geocodeTaskAddress(task);
+        }
+
+        state.tasks.push(task);
+        saveToStorage();
+
+        document.getElementById('taskForm').reset();
+        document.getElementById('taskPriority').value = 'media';
+
+        renderCalendar();
+        renderTasks();
+        generateSuggestions();
+
+        showNotification('✅ Tarea añadida correctamente', 'success', 3000);
+    } catch (error) {
+        console.error('Error adding task:', error);
+        showNotification(`❌ Error al agregar tarea: ${error.message}`, 'error', 5000);
     }
-
-    const task = {
-        id: Date.now(),
-        name: document.getElementById('taskName').value,
-        duration: parseFloat(document.getElementById('taskDuration').value),
-        location: document.getElementById('taskLocation').value,
-        address: document.getElementById('taskAddress').value || null,
-        priority: document.getElementById('taskPriority').value,
-        deadline: deadline,
-        windowStart: windowStart,
-        windowEnd: windowEnd,
-        assignedDate: null,
-        assignedTime: null,
-        lat: null,
-        lng: null,
-        status: 'active',  // active, pending, archived
-        isFixed: document.getElementById('taskIsFixed')?.checked || false  // Nueva propiedad para tareas fijas
-    };
-
-    // Intentar geocodificar la dirección si se proporcionó
-    if (task.address) {
-        geocodeTaskAddress(task);
-    }
-
-    state.tasks.push(task);
-    saveToStorage();
-
-    document.getElementById('taskForm').reset();
-    document.getElementById('taskPriority').value = 'media';
-
-    renderCalendar();
-    renderTasks();
-    generateSuggestions();
-
-    showNotification('Tarea añadida correctamente', 'success');
 }
 
 // Geocodificar dirección de tarea
@@ -1488,13 +1519,24 @@ async function loadPlaceDetailsForTask(task) {
 
 // Eliminar tarea
 function deleteTask(taskId) {
-    if (confirm('¿Estás seguro de que quieres eliminar esta tarea?')) {
-        state.tasks = state.tasks.filter(t => t.id !== taskId);
-        saveToStorage();
-        renderCalendar();
-        renderTasks();
-        generateSuggestions();
-        showNotification('Tarea eliminada', 'success');
+    try {
+        if (confirm('¿Estás seguro de que quieres eliminar esta tarea?')) {
+            const task = state.tasks.find(t => t.id === taskId);
+            if (!task) {
+                showNotification('❌ Tarea no encontrada', 'error', 3000);
+                return;
+            }
+
+            state.tasks = state.tasks.filter(t => t.id !== taskId);
+            saveToStorage();
+            renderCalendar();
+            renderTasks();
+            generateSuggestions();
+            showNotification(`✅ Tarea "${task.name}" eliminada correctamente`, 'success', 3000);
+        }
+    } catch (error) {
+        console.error('Error deleting task:', error);
+        showNotification(`❌ Error al eliminar tarea: ${error.message}`, 'error', 5000);
     }
 }
 
@@ -3118,23 +3160,47 @@ function hideEventTooltip() {
 
 // Actualizar fecha/hora de una tarea cuando se mueve en el calendario
 function updateTaskDateTime(event, newStart, newEnd) {
-    if (!event.id.startsWith('task-')) return;
+    try {
+        if (!event.id.startsWith('task-')) return;
 
-    const taskId = event.extendedProps.taskId;
-    const task = state.tasks.find(t => t.id === taskId);
+        const taskId = event.extendedProps.taskId;
+        const task = state.tasks.find(t => t.id === taskId);
 
-    if (!task) return;
+        if (!task) {
+            showNotification('❌ Tarea no encontrada', 'error', 3000);
+            return;
+        }
 
-    // Actualizar fecha y hora
-    task.assignedDate = formatDateToString(newStart);
-    task.assignedTime = `${String(newStart.getHours()).padStart(2, '0')}:${String(newStart.getMinutes()).padStart(2, '0')}`;
+        // Validar que el rango de tiempo es válido
+        if (newStart >= newEnd) {
+            showNotification('❌ La fecha de inicio debe ser anterior a la fecha de fin', 'error', 5000);
+            return;
+        }
 
-    // Calcular nueva duración basada en el rango
-    const durationMs = newEnd - newStart;
-    task.duration = durationMs / (1000 * 60 * 60); // Convertir a horas
+        // Calcular nueva duración basada en el rango
+        const durationMs = newEnd - newStart;
+        const newDuration = durationMs / (1000 * 60); // Convertir a minutos
 
-    saveToStorage();
-    showNotification(`Tarea "${task.name}" movida a ${task.assignedDate} ${task.assignedTime}`, 'success');
+        // Validar duración (entre 15 minutos y 24 horas)
+        if (newDuration < 15 || newDuration > 1440) {
+            showNotification('❌ La duración debe estar entre 15 minutos y 24 horas', 'error', 5000);
+            return;
+        }
+
+        // Actualizar fecha, hora y duración
+        task.assignedDate = formatDateToString(newStart);
+        task.assignedTime = `${String(newStart.getHours()).padStart(2, '0')}:${String(newStart.getMinutes()).padStart(2, '0')}`;
+        task.duration = newDuration;
+
+        saveToStorage();
+        renderCalendar();
+        renderTasks();
+        generateSuggestions();
+        showNotification(`✅ Tarea "${task.name}" movida a ${task.assignedDate} ${task.assignedTime}`, 'success', 3000);
+    } catch (error) {
+        console.error('Error updating task date/time:', error);
+        showNotification(`❌ Error al actualizar tarea: ${error.message}`, 'error', 5000);
+    }
 }
 
 // Funciones showEventDetails y showAddTaskModal removidas - ahora se usa openTaskModal()
@@ -4021,40 +4087,79 @@ function closeTaskModal() {
 function saveTaskFromModal(e) {
     e.preventDefault();
 
-    const taskId = document.getElementById('modalTaskId').value;
-    const name = document.getElementById('modalTaskName').value;
-    const duration = parseFloat(document.getElementById('modalTaskDuration').value);
-    const location = document.getElementById('modalTaskLocation').value;
-    const address = document.getElementById('modalTaskAddress').value || null;
-    const placeId = document.getElementById('modalTaskPlaceId').value || null;
-    const priority = document.getElementById('modalTaskPriority').value;
-    const status = document.getElementById('modalTaskStatus').value;
-    const isFixed = document.getElementById('modalTaskIsFixed').checked || false;
-    const dateInput = document.getElementById('modalTaskDate').value;
-    const timeInput = document.getElementById('modalTaskTime').value;
-    const deadlineInput = document.getElementById('modalTaskDeadline').value;
+    try {
+        const taskId = document.getElementById('modalTaskId').value;
+        const name = document.getElementById('modalTaskName').value?.trim();
+        const duration = parseFloat(document.getElementById('modalTaskDuration').value);
+        const location = document.getElementById('modalTaskLocation').value;
+        const address = document.getElementById('modalTaskAddress').value || null;
+        const placeId = document.getElementById('modalTaskPlaceId').value || null;
+        const priority = document.getElementById('modalTaskPriority').value;
+        const status = document.getElementById('modalTaskStatus').value;
+        const isFixed = document.getElementById('modalTaskIsFixed').checked || false;
+        const dateInput = document.getElementById('modalTaskDate').value;
+        const timeInput = document.getElementById('modalTaskTime').value;
+        const deadlineInput = document.getElementById('modalTaskDeadline').value;
 
-    // Obtener coordenadas del input si están disponibles
-    const addressInput = document.getElementById('modalTaskAddress');
-    const lat = addressInput.dataset.lat ? parseFloat(addressInput.dataset.lat) : null;
-    const lng = addressInput.dataset.lng ? parseFloat(addressInput.dataset.lng) : null;
+        // Validar nombre
+        if (!name || name.length < 3) {
+            showNotification('❌ El nombre de la tarea debe tener al menos 3 caracteres', 'error', 5000);
+            document.getElementById('modalTaskName').focus();
+            return;
+        }
 
-    // Validar y convertir fecha si se proporcionó (viene en formato YYYY-MM-DD del input type="date")
-    let assignedDate = null;
-    if (dateInput) {
-        assignedDate = convertFromDateInputFormat(dateInput);
-    }
+        // Validar duración
+        if (!duration || duration < 15 || duration > 1440) {
+            showNotification('❌ La duración debe estar entre 15 minutos (0.25h) y 1440 minutos (24h)', 'error', 5000);
+            document.getElementById('modalTaskDuration').focus();
+            return;
+        }
 
-    // Validar y convertir deadline si se proporcionó
-    let deadline = null;
-    if (deadlineInput) {
-        deadline = convertFromDateInputFormat(deadlineInput);
-    }
+        // Validar prioridad
+        if (!['baja', 'media', 'alta', 'urgente'].includes(priority)) {
+            showNotification('❌ La prioridad no es válida', 'error', 5000);
+            return;
+        }
 
-    if (taskId) {
-        // Editar tarea existente
-        const task = state.tasks.find(t => t.id === parseInt(taskId));
-        if (task) {
+        // Validar estado
+        if (!['active', 'pending', 'archived', 'completed'].includes(status)) {
+            showNotification('❌ El estado no es válido', 'error', 5000);
+            return;
+        }
+
+        // Obtener coordenadas del input si están disponibles
+        const addressInput = document.getElementById('modalTaskAddress');
+        const lat = addressInput.dataset.lat ? parseFloat(addressInput.dataset.lat) : null;
+        const lng = addressInput.dataset.lng ? parseFloat(addressInput.dataset.lng) : null;
+
+        // Validar y convertir fecha si se proporcionó (viene en formato YYYY-MM-DD del input type="date")
+        let assignedDate = null;
+        if (dateInput) {
+            assignedDate = convertFromDateInputFormat(dateInput);
+            if (!assignedDate) {
+                showNotification('❌ Formato de fecha inválido', 'error', 5000);
+                return;
+            }
+        }
+
+        // Validar y convertir deadline si se proporcionó
+        let deadline = null;
+        if (deadlineInput) {
+            deadline = convertFromDateInputFormat(deadlineInput);
+            if (!deadline) {
+                showNotification('❌ Formato de fecha de límite inválido', 'error', 5000);
+                return;
+            }
+        }
+
+        if (taskId) {
+            // Editar tarea existente
+            const task = state.tasks.find(t => t.id === parseInt(taskId));
+            if (!task) {
+                showNotification('❌ Tarea no encontrada', 'error', 3000);
+                return;
+            }
+
             task.name = name;
             task.duration = duration;
             task.location = location;
@@ -4083,68 +4188,83 @@ function saveTaskFromModal(e) {
                 loadPlaceDetailsForTask(task);
             }
 
-            showNotification(`Tarea "${name}" actualizada`, 'success');
-        }
-    } else {
-        // Crear nueva tarea
-        const task = {
-            id: Date.now(),
-            name,
-            duration,
-            location,
-            address,
-            priority,
-            deadline,
-            windowStart: null,
-            windowEnd: null,
-            assignedDate,
-            assignedTime: normalizeTimeFormat(timeInput) || null,
-            lat: lat,
-            lng: lng,
-            placeId: placeId,
-            status,
-            placeDetails: null // Se llenará si hay placeId
-        };
+            showNotification(`✅ Tarea "${name}" actualizada correctamente`, 'success', 3000);
+        } else {
+            // Crear nueva tarea
+            const task = {
+                id: Date.now(),
+                name,
+                duration,
+                location,
+                address,
+                priority,
+                deadline,
+                windowStart: null,
+                windowEnd: null,
+                assignedDate,
+                assignedTime: normalizeTimeFormat(timeInput) || null,
+                lat: lat,
+                lng: lng,
+                placeId: placeId,
+                status,
+                isFixed: isFixed,
+                placeDetails: null // Se llenará si hay placeId
+            };
 
-        // Si tiene placeId de Google, cargar detalles del lugar
-        if (placeId && window.GoogleMapsAPI) {
-            loadPlaceDetailsForTask(task);
-        } else if (address && !lat && !lng) {
-            // Geocodificar si se proporcionó dirección pero no hay coordenadas
-            geocodeTaskAddress(task);
+            // Si tiene placeId de Google, cargar detalles del lugar
+            if (placeId && window.GoogleMapsAPI) {
+                loadPlaceDetailsForTask(task);
+            } else if (address && !lat && !lng) {
+                // Geocodificar si se proporcionó dirección pero no hay coordenadas
+                geocodeTaskAddress(task);
+            }
+
+            state.tasks.push(task);
+            showNotification(`✅ Tarea "${name}" creada correctamente`, 'success', 3000);
         }
 
-        state.tasks.push(task);
-        showNotification(`Tarea "${name}" creada`, 'success');
+        saveToStorage();
+        renderCalendar();
+        renderTasks();
+        generateSuggestions();
+        updateDashboard();
+        closeTaskModal();
+    } catch (error) {
+        console.error('Error saving task from modal:', error);
+        showNotification(`❌ Error al guardar tarea: ${error.message}`, 'error', 5000);
     }
-
-    saveToStorage();
-    renderCalendar();
-    renderTasks();
-    generateSuggestions();
-    updateDashboard();
-    closeTaskModal();
 }
 
 function deleteTaskFromModal() {
-    const taskId = document.getElementById('modalTaskId').value;
-    if (!taskId) return;
+    try {
+        const taskId = document.getElementById('modalTaskId').value;
+        if (!taskId) {
+            showNotification('❌ No se especificó tarea a eliminar', 'error', 3000);
+            return;
+        }
 
-    const task = state.tasks.find(t => t.id === parseInt(taskId));
-    if (!task) return;
+        const task = state.tasks.find(t => t.id === parseInt(taskId));
+        if (!task) {
+            showNotification('❌ Tarea no encontrada', 'error', 3000);
+            return;
+        }
 
-    const confirmed = confirm(`¿Estás seguro de eliminar la tarea "${task.name}"?`);
-    if (!confirmed) return;
+        const confirmed = confirm(`¿Estás seguro de que quieres eliminar la tarea "${task.name}"?`);
+        if (!confirmed) return;
 
-    state.tasks = state.tasks.filter(t => t.id !== parseInt(taskId));
-    saveToStorage();
-    renderCalendar();
-    renderTasks();
-    generateSuggestions();
-    updateDashboard();
-    closeTaskModal();
+        state.tasks = state.tasks.filter(t => t.id !== parseInt(taskId));
+        saveToStorage();
+        renderCalendar();
+        renderTasks();
+        generateSuggestions();
+        updateDashboard();
+        closeTaskModal();
 
-    showNotification(`Tarea "${task.name}" eliminada`, 'success');
+        showNotification(`✅ Tarea "${task.name}" eliminada correctamente`, 'success', 3000);
+    } catch (error) {
+        console.error('Error deleting task from modal:', error);
+        showNotification(`❌ Error al eliminar tarea: ${error.message}`, 'error', 5000);
+    }
 }
 
 function archiveTaskFromModal() {
