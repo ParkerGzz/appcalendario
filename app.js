@@ -798,7 +798,6 @@ function setupEventListeners() {
     setupAddressAutocomplete('taskLocation', 'taskLocationSuggestions', 'taskLocation');
     setupAddressAutocomplete('taskAddress', 'taskAddressSuggestions', 'task');
     setupAddressAutocomplete('modalTaskLocation', 'modalTaskLocationSuggestions', 'modalLocation');
-    setupAddressAutocomplete('modalTaskAddress', 'modalTaskAddressSuggestions', 'modal');
 
     // Transporte
     document.getElementById('saveTransport')?.addEventListener('click', saveTransportPreferences);
@@ -4132,8 +4131,7 @@ function openTaskModal(taskId = null, prefilledData = null) {
         document.getElementById('modalTaskId').value = task.id;
         document.getElementById('modalTaskName').value = task.name;
         document.getElementById('modalTaskDuration').value = task.duration;
-        document.getElementById('modalTaskLocation').value = task.location;
-        document.getElementById('modalTaskAddress').value = task.address || '';
+        document.getElementById('modalTaskLocation').value = task.location || task.address || '';
         document.getElementById('modalTaskPriority').value = task.priority;
         document.getElementById('modalTaskStatus').value = task.status || 'active';
         document.getElementById('modalTaskIsFixed').checked = task.isFixed || false;
@@ -4183,7 +4181,7 @@ function saveTaskFromModal(e) {
         const name = document.getElementById('modalTaskName').value?.trim();
         const duration = parseFloat(document.getElementById('modalTaskDuration').value);
         const location = document.getElementById('modalTaskLocation').value;
-        const address = document.getElementById('modalTaskAddress').value || null;
+        const address = location; // Use location as address
         const placeId = document.getElementById('modalTaskPlaceId').value || null;
         const priority = document.getElementById('modalTaskPriority').value;
         const status = document.getElementById('modalTaskStatus').value;
@@ -4219,9 +4217,9 @@ function saveTaskFromModal(e) {
         }
 
         // Obtener coordenadas del input si están disponibles
-        const addressInput = document.getElementById('modalTaskAddress');
-        const lat = addressInput.dataset.lat ? parseFloat(addressInput.dataset.lat) : null;
-        const lng = addressInput.dataset.lng ? parseFloat(addressInput.dataset.lng) : null;
+        const locationInput = document.getElementById('modalTaskLocation');
+        const lat = locationInput && locationInput.dataset.lat ? parseFloat(locationInput.dataset.lat) : null;
+        const lng = locationInput && locationInput.dataset.lng ? parseFloat(locationInput.dataset.lng) : null;
 
         // Validar y convertir fecha si se proporcionó (viene en formato YYYY-MM-DD del input type="date")
         let assignedDate = null;
