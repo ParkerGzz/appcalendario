@@ -194,6 +194,8 @@ select:focus-visible {
   border-right: 1px solid var(--border);
   padding: 20px 0;
   overflow-y: auto;
+  height: calc(100vh - 60px);
+  flex-shrink: 0;
 }
 
 .sidebar-overlay {
@@ -225,6 +227,7 @@ body.sidebar-open .sidebar-overlay {
   flex-direction: column;
   gap: 4px;
   padding: 0 12px;
+  width: 100%;
 }
 
 .nav-item {
@@ -237,6 +240,10 @@ body.sidebar-open .sidebar-overlay {
   text-decoration: none;
   transition: all 0.2s;
   cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
 }
 
 .nav-item:hover {
@@ -251,11 +258,19 @@ body.sidebar-open .sidebar-overlay {
 
 .nav-icon {
   font-size: 18px;
+  flex-shrink: 0;
+  min-width: 20px;
+  text-align: center;
 }
 
 .nav-label {
   font-size: 14px;
   font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+  min-width: 0;
 }
 
 /* ========== MAIN CONTENT ========== */
@@ -1046,13 +1061,14 @@ body.sidebar-open .sidebar-overlay {
 
 /* ========== RESPONSIVE ========== */
 @media (max-width: 768px) {
-  .sidebar {
+.sidebar {
     position: fixed;
     left: -240px;
     top: 60px;
+    width: 240px;
     height: calc(100vh - 60px);
-    z-index: 1000;
-    transition: left 0.3s;
+    transition: left 0.3s ease;
+    z-index: 950;
   }
 
   .sidebar.open {
@@ -3153,4 +3169,102 @@ body.sidebar-open .sidebar-overlay {
   .dropdown-email {
     max-width: 150px;
   }
+}
+
+/* ===== SIDEBAR RESPONSIVE IMPROVEMENTS ===== */
+
+/* Mejorar el ajuste del sidebar en diferentes tamaños de pantalla */
+@media (max-width: 1024px) {
+  .sidebar {
+    width: 220px;
+  }
+
+  .nav-item {
+    padding: 10px 14px;
+  }
+
+  .nav-label {
+    font-size: 13px;
+  }
+
+  .nav-icon {
+    font-size: 16px;
+  }
+}
+
+/* Mejorar layout para pantallas pequeñas */
+@media (max-width: 480px) {
+  .sidebar {
+    width: 240px;
+  }
+
+  .nav-item {
+    padding: 10px 12px;
+    gap: 8px;
+  }
+
+  .nav-label {
+    font-size: 12px;
+  }
+
+  .nav-icon {
+    font-size: 16px;
+    min-width: 16px;
+  }
+
+  .main-content {
+    padding: 16px;
+  }
+}
+
+/* Asegurar que el app-view se ajuste correctamente */
+.app-view {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.topbar {
+  flex-shrink: 0;
+  height: 60px;
+}
+
+/* Ajustar el contenedor principal */
+.app-container {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+  width: 100%;
+  position: relative;
+}
+
+.main-content {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  height: calc(100vh - 60px);
+  min-width: 0;
+}
+
+/* Mejorar scrollbars */
+.sidebar::-webkit-scrollbar,
+.main-content::-webkit-scrollbar {
+  width: 8px;
+}
+
+.sidebar::-webkit-scrollbar-track,
+.main-content::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.sidebar::-webkit-scrollbar-thumb,
+.main-content::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 4px;
+}
+
+.sidebar::-webkit-scrollbar-thumb:hover,
+.main-content::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
 }
