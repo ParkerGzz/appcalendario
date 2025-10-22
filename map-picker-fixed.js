@@ -387,7 +387,7 @@
                         <strong>${place.name}</strong><br>
                         <small>${place.vicinity || ''}</small><br>
                         <button onclick="selectNearbyPlace('${place.place_id}')"
-                                style="margin-top: 8px; padding: 6px 12px; background: #7c3aed; color: white; border: none; border-radius: 6px; cursor: pointer;">
+                                style="margin-top: 8px; padding: 6px 12px; background: #10155f; color: white; border: none; border-radius: 6px; cursor: pointer;">
                             Seleccionar
                         </button>
                     </div>

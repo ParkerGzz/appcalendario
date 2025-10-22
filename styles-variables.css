@@ -37,10 +37,10 @@
   --danger: #ef4444;
   --danger-dark: #dc2626;
 
-  /* Información - usa violeta del brand */
-  --info-light: #f3e8ff;
-  --info: #7c3aed;
-  --info-dark: #6d28d9;
+  /* Información - usa celeste del brand */
+  --info-light: #cffafe;
+  --info: #10155f;
+  --info-dark: #1e2a5f;
 
   /* ========== COLORES DE INTERFAZ ========== */
   /* Fondos */
@@ -74,7 +74,7 @@
   /* Estados interactivos */
   --hover-overlay: rgba(0, 0, 0, 0.05);
   --active-overlay: rgba(0, 0, 0, 0.1);
-  --focus-ring: 0 0 0 3px rgba(124, 58, 237, 0.3);
+  --focus-ring: 0 0 0 3px rgba(16, 21, 95, 0.3);
 
   /* ========== COLORES ESPECÍFICOS DE COMPONENTES ========== */
   /* Inputs */
@@ -88,9 +88,9 @@
   --secondary-700: #15803d;
   --secondary-800: #166534;
 
-  --accent-600: #9333ea;
-  --accent-700: #7e22ce;
-  --accent-800: #6b21a8;
+  --accent-600: #2a3f7f;
+  --accent-700: #1e2a5f;
+  --accent-800: #0f1d4d;
 
   /* ========== TRANSICIONES ========== */
   --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);

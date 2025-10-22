@@ -3,8 +3,8 @@
   --bg1: #f8fafc;        /* slate-50 - fondo principal */
   --bg2: #f1f5f9;        /* slate-100 - fondo secundario */
   --panel: #ffffff;      /* blanco - paneles */
-  --brand: #7c3aed;      /* violet-600 */
-  --accent: #a855f7;     /* violet-500 */
+  --brand: #10155f;      /* cyan-500 - Celeste claro */
+  --accent: #1e2a5f;     /* cyan-600 - Celeste más oscuro */
   --ok: #10b981;         /* emerald */
   --warn: #f59e0b;       /* amber */
   --danger: #ef4444;     /* red */
@@ -15,7 +15,7 @@
   --text-secondary: #475569; /* slate-600 */
   --border: #e2e8f0;     /* slate-200 - bordes */
   --bg-secondary: #e2e8f0; /* slate-200 */
-  --focus-ring: rgba(124, 58, 237, 0.35);
+  --focus-ring: rgba(16, 21, 95, 0.35);
   --shadow: rgba(15, 23, 42, 0.08);
   --shadow-md: rgba(15, 23, 42, 0.12);
   --shadow-lg: rgba(15, 23, 42, 0.15);
@@ -443,7 +443,7 @@ body.sidebar-open .sidebar-overlay {
 }
 
 .btn-primary:hover {
-  background: #6d28d9;
+  background: #1e2a5f;
 }
 
 .btn-brand {
