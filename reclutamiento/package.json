@@ -1,0 +1,20 @@
+{
+  "name": "reclutamiento",
+  "version": "1.0.0",
+  "description": "Postulación, carga de CV y agenda de entrevistas",
+  "type": "module",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "demo": "node src/seed-demo.js",
+    "test": "node --test test/*.test.js"
+  },
+  "engines": {
+    "node": ">=22.13.0"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.21.2",
+    "multer": "^2.0.2"
+  }
+}

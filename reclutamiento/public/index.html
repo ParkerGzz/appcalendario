@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Postulación</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Figtree:wght@400;600;700&display=swap">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main class="candidate">
+    <header class="brand"><span class="brand-mark" aria-hidden="true">✓</span><span id="company">Reclutamiento</span></header>
+
+    <div id="loading" class="muted">Cargando…</div>
+    <div id="fatal" class="alert error" role="alert" hidden></div>
+
+    <!-- Postulación paso a paso -->
+    <form id="apply" class="stack" novalidate hidden>
+      <div class="stack" style="gap:8px">
+        <h1 id="hello">Postula y agenda tu entrevista</h1>
+        <p class="muted">Toma unos 3 minutos. Al final eliges el día y la hora de tu entrevista.</p>
+      </div>
+      <ol class="steps" id="steps" aria-label="Pasos">
+        <li><span>Cargo</span></li><li><span>Tus datos</span></li><li><span>CV</span></li><li><span>Entrevista</span></li><li><span>Enviar</span></li>
+      </ol>
+
+      <section class="panel" data-step="0">
+        <h2>¿A qué cargo postulas?</h2>
+        <div class="choices" id="jobs"></div>
+        <p id="no-jobs" class="alert warn" hidden>No hay cargos abiertos en este momento.</p>
+        <div id="job-desc" class="muted small"></div>
+      </section>
+
+      <section class="panel" data-step="1" hidden>
+        <h2>Tus datos</h2>
+        <label class="field">Nombre completo<input id="name" name="name" autocomplete="name" required maxlength="120"></label>
+        <div class="two">
+          <label class="field">RUT o documento<input id="document_id" name="document_id" maxlength="30" placeholder="12.345.678-9"></label>
+          <label class="field">Comuna o ciudad<input id="city" name="city" autocomplete="address-level2" maxlength="80"></label>
+        </div>
+        <div class="two">
+          <label class="field">Correo<input id="email" name="email" type="email" autocomplete="email" required maxlength="160"></label>
+          <label class="field">Celular (WhatsApp)<input id="phone" name="phone" type="tel" autocomplete="tel" required maxlength="30" placeholder="+56 9 1234 5678"></label>
+        </div>
+        <div id="questions" class="stack"></div>
+      </section>
+
+      <section class="panel" data-step="2" hidden>
+        <h2>Tu CV</h2>
+        <label class="dropzone" id="dropzone">
+          <input type="file" id="cv" name="cv" accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document">
+          <strong>Toca para elegir tu CV</strong>
+          <span class="muted small">o arrástralo aquí · PDF o Word · máximo <span id="max-mb">5</span> MB</span>
+        </label>
+        <div id="file-chip" class="file-chip" hidden></div>
+        <p id="cv-optional" class="muted small" hidden>Para este cargo el CV es opcional.</p>
+      </section>
+
+      <section class="panel" data-step="3" hidden>
+        <h2>Elige el día de tu entrevista</h2>
+        <div class="days" id="days" role="group" aria-label="Días disponibles"></div>
+        <div class="times" id="times" role="group" aria-label="Horas disponibles"></div>
+        <p id="slot-place" class="muted small"></p>
+        <p id="no-slots" class="alert warn" hidden>Por ahora no hay horarios disponibles. Envía tu postulación y te contactaremos para coordinar.</p>
+      </section>
+
+      <section class="panel" data-step="4" hidden>
+        <h2>Revisa y envía</h2>
+        <dl class="summary" id="summary"></dl>
+        <label class="choice"><input type="checkbox" id="consent"><span>Acepto que <b class="company-name">la empresa</b> use mis datos solo para este proceso de selección.</span></label>
+      </section>
+
+      <div id="error" class="alert error" role="alert" hidden></div>
+      <div class="nav">
+        <button type="button" class="btn" id="back">Atrás</button>
+        <button type="submit" class="btn primary" id="next">Continuar</button>
+      </div>
+    </form>
+
+    <!-- Confirmación y gestión de la entrevista -->
+    <section id="status" class="stack" hidden>
+      <div class="stack" style="gap:8px">
+        <h1 id="status-title">¡Listo!</h1>
+        <p class="muted" id="status-sub"></p>
+      </div>
+      <div class="ticket" id="ticket" hidden>
+        <span class="eyebrow">Tu entrevista</span>
+        <span class="when" id="when"></span>
+        <span id="where"></span>
+      </div>
+      <div class="row" id="cal-actions" hidden>
+        <a class="btn primary" id="gcal" target="_blank" rel="noopener">Agregar a Google Calendar</a>
+        <a class="btn" id="ics">Descargar para iPhone / Outlook</a>
+      </div>
+      <div class="panel">
+        <h3>Guarda este link</h3>
+        <p class="muted small">Con él puedes ver o cambiar la hora de tu entrevista.</p>
+        <div class="row"><input id="my-link" readonly class="grow" aria-label="Tu link"><button class="btn" type="button" id="copy">Copiar</button></div>
+      </div>
+      <div class="panel" id="reschedule" hidden>
+        <h3>¿No puedes ese día?</h3>
+        <div class="days" id="r-days" role="group" aria-label="Días disponibles"></div>
+        <div class="times" id="r-times" role="group" aria-label="Horas disponibles"></div>
+        <p id="r-none" class="muted small" hidden>No hay otros horarios disponibles por ahora.</p>
+        <div id="r-error" class="alert error" role="alert" hidden></div>
+        <div><button class="btn primary" type="button" id="r-save" disabled>Cambiar a este horario</button></div>
+      </div>
+    </section>
+  </main>
+  <script type="module" src="postular.js"></script>
+</body>
+</html>

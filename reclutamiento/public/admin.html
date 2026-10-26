@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="robots" content="noindex">
+  <title>Panel de reclutamiento</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Figtree:wght@400;600;700&display=swap">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <!-- Ingreso -->
+  <form id="login" class="login stack" hidden>
+    <div class="brand"><span class="brand-mark" aria-hidden="true">✓</span>Panel de reclutamiento</div>
+    <div class="panel">
+      <label class="field">Contraseña<input type="password" id="password" autocomplete="current-password" required></label>
+      <div id="login-error" class="alert error" role="alert" hidden></div>
+      <button class="btn primary" type="submit">Entrar</button>
+    </div>
+  </form>
+
+  <div id="app" hidden>
+    <header class="admin-top">
+      <div class="brand"><span class="brand-mark" aria-hidden="true">✓</span><span id="company">Reclutamiento</span></div>
+      <nav class="tabs grow" role="tablist">
+        <button class="tab" role="tab" data-tab="candidatos" aria-selected="true">Postulantes</button>
+        <button class="tab" role="tab" data-tab="agenda" aria-selected="false">Agenda</button>
+        <button class="tab" role="tab" data-tab="cargos" aria-selected="false">Cargos</button>
+        <button class="tab" role="tab" data-tab="invitar" aria-selected="false">Invitar por WhatsApp</button>
+      </nav>
+      <button class="btn small" id="logout" type="button">Salir</button>
+    </header>
+
+    <main class="admin-main">
+      <!-- Postulantes -->
+      <section data-panel="candidatos" class="stack">
+        <div class="toolbar">
+          <label class="field">Buscar<input id="f-q" type="search" placeholder="Nombre, correo, teléfono o RUT"></label>
+          <label class="field">Cargo<select id="f-job"><option value="">Todos los cargos</option></select></label>
+          <a class="btn" id="export" href="/api/admin/export.csv">Descargar Excel (CSV)</a>
+        </div>
+        <div class="counts" id="f-status" role="group" aria-label="Filtrar por estado"></div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Nombre</th><th>Cargo</th><th>Entrevista</th><th>Estado</th><th>Acciones</th></tr></thead>
+            <tbody id="candidates"></tbody>
+          </table>
+          <div class="empty" id="candidates-empty" hidden>Aún no hay postulantes con este filtro. Comparte el link de postulación desde <b>Cargos</b> o invita contactos desde <b>Invitar por WhatsApp</b>.</div>
+        </div>
+      </section>
+
+      <!-- Agenda -->
+      <section data-panel="agenda" class="stack" hidden>
+        <form class="panel" id="slot-form">
+          <div><h2>Abrir horarios de entrevista</h2><p class="muted small">Crea bloques de una vez. Los candidatos solo ven los que tienen cupo.</p></div>
+          <div class="toolbar">
+            <label class="field">Desde<input type="date" id="s-from" required></label>
+            <label class="field">Hasta<input type="date" id="s-to" required></label>
+            <label class="field">Hora inicio<input type="time" id="s-start" value="09:00" required></label>
+            <label class="field">Hora término<input type="time" id="s-end" value="13:00" required></label>
+          </div>
+          <fieldset class="row" style="border:0;padding:0;margin:0" id="s-days">
+            <legend class="eyebrow" style="margin-bottom:6px">Días</legend>
+          </fieldset>
+          <div class="toolbar">
+            <label class="field">Duración de cada entrevista
+              <select id="s-duration"><option value="15">15 min</option><option value="20">20 min</option><option value="30" selected>30 min</option><option value="45">45 min</option><option value="60">1 hora</option></select>
+            </label>
+            <label class="field">Personas por bloque<input type="number" id="s-capacity" min="1" max="50" value="1"></label>
+            <label class="field" style="flex-basis:280px">Lugar o link de videollamada<input id="s-place" maxlength="200" placeholder="Av. Providencia 1234, of. 501"></label>
+          </div>
+          <div id="slot-msg" class="alert" role="status" hidden></div>
+          <div><button class="btn primary" type="submit">Crear horarios</button></div>
+        </form>
+        <div id="slots" class="stack"></div>
+        <div class="empty panel" id="slots-empty" hidden>No hay horarios abiertos. Crea los primeros con el formulario de arriba.</div>
+      </section>
+
+      <!-- Cargos -->
+      <section data-panel="cargos" class="stack" hidden>
+        <div class="panel">
+          <div class="row"><div class="grow"><h2>Link de postulación</h2><p class="muted small">Compártelo en avisos, redes o grupos. Muestra todos los cargos activos.</p></div></div>
+          <div class="row"><input id="public-link" readonly class="grow" aria-label="Link de postulación"><button class="btn" id="copy-public" type="button">Copiar</button><a class="btn wa" id="share-public" target="_blank" rel="noopener">Compartir por WhatsApp</a></div>
+        </div>
+        <div class="row"><h2 class="grow">Cargos</h2><button class="btn primary" id="new-job" type="button">Nuevo cargo</button></div>
+        <div class="cards" id="jobs"></div>
+        <div class="empty panel" id="jobs-empty" hidden>Crea tu primer cargo para empezar a recibir postulaciones.</div>
+      </section>
+
+      <!-- Invitar -->
+      <section data-panel="invitar" class="stack" hidden>
+        <form class="panel" id="import-form">
+          <div class="stack" style="gap:6px">
+            <h2>Invitar una lista de contactos</h2>
+            <p class="muted small">Pega desde Excel o sube un CSV con columnas <b>nombre</b>, <b>teléfono</b> y <b>correo</b> (opcional). Cada persona recibe su propio link: entra con sus datos ya escritos y elige su hora.</p>
+          </div>
+          <div class="toolbar">
+            <label class="field">Cargo<select id="i-job" required></select></label>
+            <label class="field">Archivo CSV (opcional)<input type="file" id="i-file" accept=".csv,text/csv,text/plain"></label>
+          </div>
+          <label class="field">Contactos<textarea id="i-csv" rows="7" placeholder="nombre;telefono;correo&#10;María Pérez;+56 9 1234 5678;maria@correo.cl&#10;Juan Soto;912345678;"></textarea>
+            <span class="hint">Los números sin código de país se toman como <span id="cc"></span>.</span>
+          </label>
+          <div id="import-msg" class="alert" role="status" hidden></div>
+          <div><button class="btn primary" type="submit">Crear invitaciones</button></div>
+        </form>
+        <div class="panel" id="import-result" hidden>
+          <div class="stack" style="gap:6px">
+            <h2>Envía las invitaciones</h2>
+            <p class="muted small">Cada botón abre WhatsApp con el mensaje listo; solo tienes que tocar enviar. Envíalos de a poco: si muchas personas que no te tienen guardado reportan los mensajes, WhatsApp puede bloquear el número.</p>
+          </div>
+          <div class="table-wrap"><table><thead><tr><th>Nombre</th><th>Teléfono</th><th></th></tr></thead><tbody id="import-rows"></tbody></table></div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Detalle de candidato -->
+  <dialog id="cand-dialog"><div class="dialog-body" id="cand-body"></div></dialog>
+  <!-- Editor de cargo -->
+  <dialog id="job-dialog">
+    <form class="dialog-body" id="job-form" method="dialog">
+      <h2 id="job-dialog-title">Nuevo cargo</h2>
+      <label class="field">Nombre del cargo<input id="j-title" required maxlength="120" placeholder="Ej: Vendedor/a part-time"></label>
+      <label class="field">Lugar<input id="j-location" maxlength="120" placeholder="Ej: Mall Plaza Oeste"></label>
+      <label class="field">Descripción<textarea id="j-description" maxlength="3000" placeholder="Horario, renta, requisitos…"></textarea></label>
+      <div class="row">
+        <label class="choice"><input type="checkbox" id="j-cv" checked><span>Pedir CV obligatorio</span></label>
+        <label class="choice"><input type="checkbox" id="j-active" checked><span>Recibiendo postulaciones</span></label>
+      </div>
+      <div class="stack" style="gap:10px">
+        <div><h3>Preguntas para el candidato</h3><p class="muted small">Además de nombre, RUT, correo, celular y comuna.</p></div>
+        <div id="j-questions" class="stack" style="gap:10px"></div>
+        <div><button class="btn small" type="button" id="add-q">Agregar pregunta</button></div>
+      </div>
+      <div id="job-error" class="alert error" role="alert" hidden></div>
+      <div class="nav"><button class="btn" type="button" id="job-cancel">Cancelar</button><button class="btn primary" type="submit" value="save">Guardar cargo</button></div>
+    </form>
+  </dialog>
+
+  <script type="module" src="admin.js"></script>
+</body>
+</html>
